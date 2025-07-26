@@ -21,7 +21,7 @@ async function factory() {
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
   const mcpClient = new Client(
     { name: "bridge-client", version: "1.0.0" },
-    { capabilities: {} },
+    { capabilities: {} }
   );
   await mcpClient.connect(stdioTransport);
 
@@ -30,7 +30,7 @@ async function factory() {
       name: "calculator-service",
       version: "1.0.0",
     },
-    { capabilities: {} },
+    { capabilities: {} }
   );
   const tools = await mcpClient.listTools();
   // console.log(tools)
@@ -45,7 +45,9 @@ async function factory() {
 
       const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
       // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
-
+      const outputSchema = tool.outputSchema
+        ? JSONSchemaToZod.convert(tool.outputSchema).shape
+        : tool.outputSchema;
       // console.log("Registering tool:inputSchema: ", inputSchema)
       server.registerTool(
         tool.name,
@@ -55,6 +57,7 @@ async function factory() {
           annotations: tool.annotations,
           ...tool,
           inputSchema: inputSchema,
+          outputSchema,
         },
         async (params) => {
           console.log("Calling tool", { name: tool.name, params });
@@ -65,9 +68,9 @@ async function factory() {
 
           // console.log("Tool result:", result);
           return result;
-        },
+        }
       );
-    }),
+    })
   );
   return server;
 }
@@ -115,7 +118,7 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  }),
+  })
 );
 app.use(express.json());
 app.use(authenticateToken);
@@ -173,10 +176,10 @@ const PORT = 3000;
 app.listen(PORT, () => {
   const expectedToken = process.env.BRIDGE_API_TOKEN;
   console.log(
-    `Bridge server listening on port ${PORT} with token ${expectedToken}`,
+    `Bridge server listening on port ${PORT} with token ${expectedToken}`
   );
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}/mcp`,
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}/mcp`
   );
   console.log(`📦 Backend: ${command} ${args.join(" ")}`);
 });
