@@ -1,12 +1,9 @@
 {
   "type": "module",
-  "name": "@masx200/mcp-calculator",
+  "name": "@masx200/mcp-streamable-http-bridge",
   "version": "1.0.0",
   "description": "A simple MCP calculator supporting addition, subtraction, multiplication and division",
   "scripts": {
-    "start:sse": "node index-sse.js",
-    "start:stdio": "node index-stdio.js",
-    "start:streamable": "node index-streamable-http.js",
     "start:bridge": "node bridge-streamable.js"
   },
   "keywords": [

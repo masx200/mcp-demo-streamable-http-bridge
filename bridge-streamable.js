@@ -25,41 +25,50 @@ async function factory() {
   );
   await mcpClient.connect(stdioTransport);
 
-  const server = new McpServer({
-    name: "calculator-service",
-    version: "1.0.0",
-  }, { capabilities: {} });
+  const server = new McpServer(
+    {
+      name: "calculator-service",
+      version: "1.0.0",
+    },
+    { capabilities: {} },
+  );
   const tools = await mcpClient.listTools();
   // console.log(tools)
 
-  await Promise.all(tools.tools.map(async (tool) => {
-    console.log("Registering tool: ", {
-      name: tool.name,
-      description: tool.description,
-    });
-    //json schema需要和zod schema进行转换，否则找不到输入参数！
-
-    const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
-    // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
-
-    // console.log("Registering tool:inputSchema: ", inputSchema)
-    server.registerTool(tool.name, {
-      description: tool.description,
-
-      annotations: tool.annotations,
-      ...tool,
-      inputSchema: inputSchema,
-    }, async (params) => {
-      console.log("Calling tool", { name: tool.name, params });
-      const result = await mcpClient.callTool({
+  await Promise.all(
+    tools.tools.map(async (tool) => {
+      console.log("Registering tool: ", {
         name: tool.name,
-        arguments: params,
+        description: tool.description,
       });
+      //json schema需要和zod schema进行转换，否则找不到输入参数！
 
-      // console.log("Tool result:", result);
-      return result;
-    });
-  }));
+      const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
+      // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
+
+      // console.log("Registering tool:inputSchema: ", inputSchema)
+      server.registerTool(
+        tool.name,
+        {
+          description: tool.description,
+
+          annotations: tool.annotations,
+          ...tool,
+          inputSchema: inputSchema,
+        },
+        async (params) => {
+          console.log("Calling tool", { name: tool.name, params });
+          const result = await mcpClient.callTool({
+            name: tool.name,
+            arguments: params,
+          });
+
+          // console.log("Tool result:", result);
+          return result;
+        },
+      );
+    }),
+  );
   return server;
 }
 // ---------- 2. 创建 StdioClientTransport ----------
@@ -102,10 +111,12 @@ const authenticateToken = (req, res, next) => {
   next();
 };
 
-app.use(cors({
-  exposedHeaders: ["Mcp-Session-Id"],
-  allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-}));
+app.use(
+  cors({
+    exposedHeaders: ["Mcp-Session-Id"],
+    allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(authenticateToken);
 
@@ -160,6 +171,10 @@ app.all("/mcp", async (req, res) => {
 
 const PORT = 3000;
 app.listen(PORT, () => {
+  const expectedToken = process.env.BRIDGE_API_TOKEN;
+  console.log(
+    `Bridge server listening on port ${PORT} with token ${expectedToken}`,
+  );
   console.log(
     `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}/mcp`,
   );
