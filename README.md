@@ -114,3 +114,103 @@ curl -X POST http://localhost:3000/mcp \
     }
   }'
 ```
+
+### Streamable-HTTP协议MCP服务器配置示例
+
+以下是使用streamable-http协议的MCP服务器配置文件示例：
+
+#### 1. 基础streamable-http配置
+创建 `mcp-streamable-config.json`：
+
+```json
+{
+  "mcpServers": {
+    "streamable-gitee": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}
+```
+
+#### 2. 带认证的streamable-http配置
+创建 `mcp-streamable-auth.json`：
+
+```json
+{
+  "mcpServers": {
+    "streamable-secure": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer your-api-token"
+      }
+    }
+  }
+}
+```
+
+#### 3. 使用桥接服务器的streamable-http配置
+创建 `mcp-bridge-streamable.json`：
+
+```json
+{
+  "mcpServers": {
+    "gitee-bridge": {
+      
+      "transport": "streamable-http",
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+```
+
+#### 4. 多服务streamable-http配置
+创建 `mcp-streamable-services.json`：
+
+```json
+{
+  "mcpServers": {
+    "gitee-streamable": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer gitee-token"
+      }
+    },
+    "filesystem-streamable": {
+      "url": "http://localhost:3001/mcp",
+      "transport": "streamable-http"
+    },
+    "fetch-streamable": {
+      "url": "http://localhost:3002/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
+```
+
+#### 5. 客户端连接streamable-http配置示例
+创建 `client-streamable-config.json`：
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "streamable-server": {
+        "transport": {
+          "type": "streamable-http",
+          "url": "http://localhost:3000/mcp",
+          "headers": {
+            "User-Agent": "mcp-client/1.0"
+          }
+        }
+      }
+    }
+  }
+}
+```
