@@ -16,7 +16,12 @@ if (rawArgs.length === 0) {
 }
 const [command, ...args] = rawArgs;
 async function factory() {
-  const stdioTransport = new StdioClientTransport({ command, args });
+  const stdioTransport = new StdioClientTransport({
+    command,
+    args,
+    cwd: process.env.BRIDGE_API_PWD || process.cwd(),
+    env: process.env,
+  });
 
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
   const mcpClient = new Client(
@@ -172,7 +177,7 @@ app.all("/mcp", async (req, res) => {
   await transport.handleRequest(req, res, req.body);
 });
 
-const PORT = 3000;
+const PORT = process.env.BRIDGE_API_PORT ?? 3000;
 app.listen(PORT, () => {
   const expectedToken = process.env.BRIDGE_API_TOKEN;
   console.log(
