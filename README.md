@@ -30,6 +30,23 @@ mcp-demo-streamable-http-bridge
 node bridge-streamable.js
 ```
 
+#### 环境变量配置
+桥接服务器支持以下环境变量：
+
+- **BRIDGE_API_TOKEN**: HTTP API Token认证密钥（可选）
+  - 用于启用HTTP API的Token认证功能
+  - 示例: `export BRIDGE_API_TOKEN="your-secret-token"`
+
+- **BRIDGE_API_PORT**: 服务器监听端口（可选）
+  - 设置桥接服务器监听的HTTP端口
+  - 默认值: `3000`
+  - 示例: `export BRIDGE_API_PORT=8080`
+
+- **BRIDGE_API_PWD**: 工作目录路径（可选）
+  - 设置stdio进程的工作目录
+  - 默认值: 当前工作目录
+  - 示例: `export BRIDGE_API_PWD="/path/to/workdir"`
+
 #### HTTP API Token 认证（可选）
 为了增加安全性，可以配置 HTTP API Token 认证。在服务器配置中设置 Token，并在客户端请求时提供相应的 Token。
 
@@ -55,6 +72,24 @@ node D:\github\mcp-streamable-http-bridge\bridge-streamable.js "cmd" "/c"  "npx"
 ##### 启动桥接服务器
 
 ```bash
+node bridge-streamable.js node index-stdio.js
+```
+
+##### 环境变量配置
+
+可以通过设置以下环境变量来配置桥接服务器：
+
+```bash
+# Linux/Mac
+export BRIDGE_API_TOKEN="your-secret-token"      # 可选：Token认证
+export BRIDGE_API_PORT=8080                       # 可选：端口配置，默认3000
+export BRIDGE_API_PWD="/path/to/workdir"          # 可选：工作目录
+node bridge-streamable.js node index-stdio.js
+
+# Windows
+set BRIDGE_API_TOKEN=your-secret-token
+set BRIDGE_API_PORT=8080
+set BRIDGE_API_PWD=C:\\path\\to\\workdir
 node bridge-streamable.js node index-stdio.js
 ```
 
