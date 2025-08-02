@@ -2,16 +2,18 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express from "express";
-
 import {
   GetPromptRequestSchema,
+  isInitializeRequest,
   ListPromptsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import cors from "cors";
+import express from "express";
 import { randomUUID } from "node:crypto";
 // ---------- 1. 解析命令行 ----------
 const [, , ...rawArgs] = process.argv;
@@ -59,6 +61,7 @@ async function factory() {
     tools: null,
     prompts: null,
     resources: null,
+    resourcesTemplates: null,
   };
   try {
     const tools = await client.listTools();
@@ -83,6 +86,14 @@ async function factory() {
 
     console.log("Registering Resources:", JSON.stringify(Resources, null, 4));
     listOutputs.resources = Resources;
+
+    const ResourcesTemplates = await client.listResourceTemplates();
+
+    console.log(
+      "Registering ResourcesTemplates:",
+      JSON.stringify(ResourcesTemplates, null, 4)
+    );
+    listOutputs.resourcesTemplates = ResourcesTemplates;
   } catch (error) {
     console.error("Error listing Resources:", error);
     capabilities.resources = undefined;
@@ -330,7 +341,11 @@ app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
 });
 
 const PORT = process.env.BRIDGE_API_PORT ?? 3000;
-app.listen(PORT, () => {
+app.listen(PORT, (error) => {
+  if (error) {
+    console.error("Error starting server:", error);
+    return;
+  }
   console.log("Environments:", JSON.stringify(process.env, null, 4));
   const expectedToken = process.env.BRIDGE_API_TOKEN;
 
