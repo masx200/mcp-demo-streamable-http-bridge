@@ -2,15 +2,14 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import {
-  McpServer,
-  ResourceTemplate,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   GetPromptRequestSchema,
   isInitializeRequest,
   ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
@@ -52,7 +51,7 @@ async function factory() {
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
   await client.connect(stdioTransport);
   const capabilities = await getServerCapabilities(client);
@@ -61,7 +60,7 @@ async function factory() {
     tools: null,
     prompts: null,
     resources: null,
-    resourcesTemplates: null,
+    resourceTemplates: null,
   };
   try {
     const tools = await client.listTools();
@@ -91,9 +90,9 @@ async function factory() {
 
     console.log(
       "Registering ResourcesTemplates:",
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
-    listOutputs.resourcesTemplates = ResourcesTemplates;
+    listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
     console.error("Error listing Resources:", error);
     capabilities.resources = undefined;
@@ -106,7 +105,7 @@ async function factory() {
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
   try {
     if (capabilities.tools && listOutputs.tools) {
@@ -122,8 +121,8 @@ async function factory() {
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //json schema需要和zod schema进行转换，否则找不到输入参数！
 
@@ -146,7 +145,7 @@ async function factory() {
             async (params) => {
               console.log(
                 "Calling tool",
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
@@ -155,9 +154,9 @@ async function factory() {
 
               // console.log("Tool result:", result);
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -176,56 +175,44 @@ async function factory() {
         async (request) => {
           console.log(
             "Getting prompt...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           // console.log("Get prompt result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
     }
-   
   } catch (error) {
     console.error("Error Registering prompts:", error);
   }
   try {
     if (capabilities.resources && listOutputs.resources) {
-      server.registerResource(
-        "config",
-        "config://app",
-        {
-          title: "Application Config",
-          description: "Application configuration data",
-          mimeType: "text/plain",
+      server.server.setRequestHandler(
+        ListResourcesRequestSchema,
+        async (request) => {
+          console.log(
+            "Listing resources...",
+            JSON.stringify(request.params, null, 4),
+          );
+          const result = listOutputs.resources;
+          // console.log("List outputs result:", JSON.stringify(result, null, 4));
+          return result;
         },
-        async (uri) => ({
-          contents: [
-            {
-              uri: uri.href,
-              text: "App configuration here",
-            },
-          ],
-        })
-      );
-
-      // Dynamic resource with parameters
-      server.registerResource(
-        "user-profile",
-        new ResourceTemplate("users://{userId}/profile", { list: undefined }),
-        {
-          title: "User Profile",
-          description: "User profile information",
-        },
-        async (uri, { userId }) => ({
-          contents: [
-            {
-              uri: uri.href,
-              text: `Profile data for user ${userId}`,
-            },
-          ],
-        })
       );
     }
+    server.server.setRequestHandler(
+      ListResourceTemplatesRequestSchema,
+      async (request) => {
+        console.log(
+          "Listing resourceTemplates...",
+          JSON.stringify(request.params, null, 4),
+        );
+        const result = listOutputs.resourceTemplates;
+        // console.log("List outputs result:", JSON.stringify(result, null, 4));
+        return result;
+      },
+    );
   } catch (error) {
     console.error("Error Registering Resources:", error);
   }
@@ -276,14 +263,14 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 app.use(authenticateToken);
 
 const transports = new Map(); // sessionId -> StreamableHTTPServerTransport
-const config_STREAMABLE_HTTP_PATH =
-  process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
+const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
+  "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"];
   let transport;
@@ -342,15 +329,15 @@ app.listen(PORT, (error) => {
 
   if (expectedToken) {
     console.log(
-      `Bridge server listening on port ${PORT} with token ${expectedToken}`
+      `Bridge server listening on port ${PORT} with token ${expectedToken}`,
     );
   } else {
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`,
     );
   }
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
   console.log(`📦 stdio Backend: ${command} ${args.join(" ")}`);
 });
