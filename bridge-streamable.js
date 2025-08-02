@@ -26,7 +26,7 @@ async function factory() {
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
   const mcpClient = new Client(
     { name: "bridge-client", version: "1.0.0" },
-    { capabilities: {} }
+    { capabilities: {} },
   );
   await mcpClient.connect(stdioTransport);
 
@@ -35,7 +35,7 @@ async function factory() {
       name: "calculator-service",
       version: "1.0.0",
     },
-    { capabilities: {} }
+    { capabilities: {} },
   );
   const tools = await mcpClient.listTools();
   // console.log(tools)
@@ -73,9 +73,9 @@ async function factory() {
 
           // console.log("Tool result:", result);
           return result;
-        }
+        },
       );
-    })
+    }),
   );
   return server;
 }
@@ -123,14 +123,15 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 app.use(authenticateToken);
 
 const transports = new Map(); // sessionId -> StreamableHTTPServerTransport
-
-app.all("/mcp", async (req, res) => {
+const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
+  "/mcp";
+app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"];
   let transport;
 
@@ -181,10 +182,10 @@ const PORT = process.env.BRIDGE_API_PORT ?? 3000;
 app.listen(PORT, () => {
   const expectedToken = process.env.BRIDGE_API_TOKEN;
   console.log(
-    `Bridge server listening on port ${PORT} with token ${expectedToken}`
+    `Bridge server listening on port ${PORT} with token ${expectedToken}`,
   );
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}/mcp`
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
   console.log(`📦 Backend: ${command} ${args.join(" ")}`);
 });
