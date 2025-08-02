@@ -20,6 +20,19 @@ if (rawArgs.length === 0) {
   process.exit(1);
 }
 const [command, ...args] = rawArgs;
+async function getServerCapabilities(client) {
+  try {
+    return await client.getServerCapabilities();
+  } catch (error) {
+    console.error("Error getting server capabilities:", error);
+    const capabilities = {
+      tools: {},
+      resources: {},
+      prompts: {},
+    };
+    return capabilities;
+  }
+}
 async function factory() {
   const stdioTransport = new StdioClientTransport({
     command,
@@ -37,15 +50,11 @@ async function factory() {
         resources: {},
         prompts: {},
       },
-    },
+    }
   );
   await client.connect(stdioTransport);
-  const capabilities = {
-    tools: {},
-    resources: {},
-    prompts: {},
-  };
-
+  const capabilities = await getServerCapabilities(client);
+  console.log("capabilities:", capabilities);
   const listOutputs = {
     tools: null,
     prompts: null,
@@ -86,7 +95,7 @@ async function factory() {
     },
     {
       capabilities: capabilities,
-    },
+    }
   );
   try {
     if (capabilities.tools && listOutputs.tools) {
@@ -124,9 +133,9 @@ async function factory() {
 
               // console.log("Tool result:", result);
               return result;
-            },
+            }
           );
-        }),
+        })
       );
     }
   } catch (error) {
@@ -171,7 +180,7 @@ async function factory() {
               },
             ],
           };
-        },
+        }
       );
     }
   } catch (error) {
@@ -194,7 +203,7 @@ async function factory() {
               text: "App configuration here",
             },
           ],
-        }),
+        })
       );
 
       // Dynamic resource with parameters
@@ -212,7 +221,7 @@ async function factory() {
               text: `Profile data for user ${userId}`,
             },
           ],
-        }),
+        })
       );
     }
   } catch (error) {
@@ -265,14 +274,14 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  }),
+  })
 );
 app.use(express.json());
 app.use(authenticateToken);
 
 const transports = new Map(); // sessionId -> StreamableHTTPServerTransport
-const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
-  "/mcp";
+const config_STREAMABLE_HTTP_PATH =
+  process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"];
   let transport;
@@ -327,15 +336,15 @@ app.listen(PORT, () => {
 
   if (expectedToken) {
     console.log(
-      `Bridge server listening on port ${PORT} with token ${expectedToken}`,
+      `Bridge server listening on port ${PORT} with token ${expectedToken}`
     );
   } else {
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`,
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`
     );
   }
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`
   );
   console.log(`📦 stdio Backend: ${command} ${args.join(" ")}`);
 });
