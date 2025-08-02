@@ -189,7 +189,7 @@ app.listen(PORT, () => {
     );
   } else {
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening without token`,
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`,
     );
   }
   console.log(
