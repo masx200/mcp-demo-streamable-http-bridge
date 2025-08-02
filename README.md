@@ -133,46 +133,9 @@ node bridge-streamable.js node index-stdio.js
 
 启用认证后，所有 HTTP 请求都需要在 Authorization 头中提供 Bearer Token：
 
-```bash
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-secret-token" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "initialize",
-    "params": {
-      "protocolVersion": "2024-11-05",
-      "capabilities": {},
-      "clientInfo": {
-        "name": "test-client",
-        "version": "1.0.0"
-      }
-    }
-  }'
-```
-
 ##### 使用示例（无认证）
 
 启动后，可以通过 HTTP 请求访问 MCP 服务：
-
-```bash
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "initialize",
-    "params": {
-      "protocolVersion": "2024-11-05",
-      "capabilities": {},
-      "clientInfo": {
-        "name": "test-client",
-        "version": "1.0.0"
-      }
-    }
-  }'
-```
 
 ### Streamable-HTTP 协议 MCP 服务器配置示例
 
@@ -230,31 +193,6 @@ curl -X POST http://localhost:3000/mcp \
 }
 ```
 
-#### 4. 多服务 streamable-http 配置
-
-创建 `mcp-streamable-services.json`：
-
-```json
-{
-  "mcpServers": {
-    "gitee-streamable": {
-      "url": "http://localhost:3000/mcp",
-      "transport": "streamable-http",
-      "headers": {
-        "Authorization": "Bearer gitee-token"
-      }
-    },
-    "filesystem-streamable": {
-      "url": "http://localhost:3001/mcp",
-      "transport": "streamable-http"
-    },
-    "fetch-streamable": {
-      "url": "http://localhost:3002/mcp",
-      "transport": "streamable-http"
-    }
-  }
-}
-```
 
 #### 5. 客户端连接 streamable-http 配置示例
 
@@ -276,4 +214,59 @@ curl -X POST http://localhost:3000/mcp \
     }
   }
 }
+```
+
+## 支持的 MCP 功能
+
+桥接服务器完整支持 MCP 协议的所有核心功能，包括 Tools、Prompts 和 Resources
+的转发和交互。
+
+### 1. MCP Tools 支持
+
+桥接服务器可以透明地转发所有 MCP Tools 调用，支持以下功能：
+
+### 2. MCP Prompts 支持
+
+支持 MCP Prompts 的完整生命周期管理：
+
+### 3. MCP Resources 支持
+
+完整支持 MCP Resources 的读取和管理：
+
+### 6. 性能优化建议
+
+为了获得最佳性能，建议：
+
+1. **连接池管理**: 使用 HTTP/1.1 keep-alive 减少连接开销
+2. **批处理请求**: 合并多个相关请求
+3. **缓存策略**: 对静态资源启用缓存
+4. **负载均衡**: 在生产环境中使用反向代理
+
+### 7. 安全最佳实践
+
+1. **Token认证**: 始终在生产环境中启用 `BRIDGE_API_TOKEN`
+2. **HTTPS**: 使用反向代理添加HTTPS支持
+3. **CORS**: 配置适当的CORS策略
+4. **速率限制**: 实施API速率限制
+5. **输入验证**: 验证所有输入参数
+
+### 8. 集成示例
+
+#### 与 Cursor 集成
+
+在 Cursor 设置中添加 MCP 服务器：
+
+```json
+{
+  "mcpServers": {
+      "gitee": {
+        "url": "http://localhost:3000/mcp",
+        "transport": "streamable-http",
+        "headers": {
+          "Authorization": "Bearer your-token"
+        }
+      }
+    }
+  }
+
 ```
