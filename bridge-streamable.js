@@ -7,6 +7,11 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
+
+import {
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "node:crypto";
 // ---------- 1. 解析命令行 ----------
 const [, , ...rawArgs] = process.argv;
@@ -24,59 +29,196 @@ async function factory() {
   });
 
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
-  const mcpClient = new Client(
+  const client = new Client(
     { name: "bridge-client", version: "1.0.0" },
-    { capabilities: {} },
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+        prompts: {},
+      },
+    },
   );
-  await mcpClient.connect(stdioTransport);
+  await client.connect(stdioTransport);
+  const capabilities = {
+    tools: {},
+    resources: {},
+    prompts: {},
+  };
+
+  const listOutputs = {
+    tools: null,
+    prompts: null,
+    resources: null,
+  };
+  try {
+    const tools = await client.listTools();
+
+    console.log("Registering tools:", JSON.stringify(tools, null, 4));
+    listOutputs.tools = tools;
+  } catch (error) {
+    console.error("Error listing tools:", error);
+    capabilities.tools = undefined;
+  }
+  try {
+    const prompts = await client.listPrompts();
+
+    console.log("Registering prompts:", JSON.stringify(prompts, null, 4));
+    listOutputs.prompts = prompts;
+  } catch (error) {
+    console.error("Error listing prompts:", error);
+    capabilities.prompts = undefined;
+  }
+  try {
+    const Resources = await client.listResources();
+
+    console.log("Registering Resources:", JSON.stringify(Resources, null, 4));
+    listOutputs.resources = Resources;
+  } catch (error) {
+    console.error("Error listing Resources:", error);
+    capabilities.resources = undefined;
+  }
 
   const server = new McpServer(
     {
-      name: "calculator-service",
+      name: "bridge-service",
       version: "1.0.0",
     },
-    { capabilities: {} },
+    {
+      capabilities: capabilities,
+    },
   );
-  const tools = await mcpClient.listTools();
-  // console.log(tools)
-
-  await Promise.all(
-    tools.tools.map(async (tool) => {
-      console.log("Registering tool: ", {
-        name: tool.name,
-        description: tool.description,
-      });
-      //json schema需要和zod schema进行转换，否则找不到输入参数！
-
-      const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
-      // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
-      const outputSchema = tool.outputSchema
-        ? JSONSchemaToZod.convert(tool.outputSchema).shape
-        : tool.outputSchema;
-      // console.log("Registering tool:inputSchema: ", inputSchema)
-      server.registerTool(
-        tool.name,
-        {
-          description: tool.description,
-
-          annotations: tool.annotations,
-          ...tool,
-          inputSchema: inputSchema,
-          outputSchema,
-        },
-        async (params) => {
-          console.log("Calling tool", { name: tool.name, params });
-          const result = await mcpClient.callTool({
+  try {
+    if (capabilities.tools && listOutputs.tools) {
+      const tools = listOutputs.tools;
+      await Promise.all(
+        tools.tools.map(async (tool) => {
+          console.log("Registering tool: ", {
             name: tool.name,
-            arguments: params,
+            description: tool.description,
           });
+          //json schema需要和zod schema进行转换，否则找不到输入参数！
 
-          // console.log("Tool result:", result);
-          return result;
+          const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
+          // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
+          const outputSchema = tool.outputSchema
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
+            : tool.outputSchema;
+          // console.log("Registering tool:inputSchema: ", inputSchema)
+          server.registerTool(
+            tool.name,
+            {
+              description: tool.description,
+
+              annotations: tool.annotations,
+              ...tool,
+              inputSchema: inputSchema,
+              outputSchema,
+            },
+            async (params) => {
+              console.log("Calling tool", { name: tool.name, params });
+              const result = await client.callTool({
+                name: tool.name,
+                arguments: params,
+              });
+
+              // console.log("Tool result:", result);
+              return result;
+            },
+          );
+        }),
+      );
+    }
+  } catch (error) {
+    console.error("Error Registering tools:", error);
+  }
+
+  try {
+    if (capabilities.prompts && listOutputs.prompts) {
+      server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+        return {
+          prompts: [
+            {
+              name: "example-prompt",
+              description: "An example prompt template",
+              arguments: [
+                {
+                  name: "arg1",
+                  description: "Example argument",
+                  required: true,
+                },
+              ],
+            },
+          ],
+        };
+      });
+
+      server.server.setRequestHandler(
+        GetPromptRequestSchema,
+        async (request) => {
+          if (request.params.name !== "example-prompt") {
+            throw new Error("Unknown prompt");
+          }
+          return {
+            description: "Example prompt",
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: "Example prompt text",
+                },
+              },
+            ],
+          };
         },
       );
-    }),
-  );
+    }
+  } catch (error) {
+    console.error("Error Registering prompts:", error);
+  }
+  try {
+    if (capabilities.resources && listOutputs.resources) {
+      server.registerResource(
+        "config",
+        "config://app",
+        {
+          title: "Application Config",
+          description: "Application configuration data",
+          mimeType: "text/plain",
+        },
+        async (uri) => ({
+          contents: [
+            {
+              uri: uri.href,
+              text: "App configuration here",
+            },
+          ],
+        }),
+      );
+
+      // Dynamic resource with parameters
+      server.registerResource(
+        "user-profile",
+        new ResourceTemplate("users://{userId}/profile", { list: undefined }),
+        {
+          title: "User Profile",
+          description: "User profile information",
+        },
+        async (uri, { userId }) => ({
+          contents: [
+            {
+              uri: uri.href,
+              text: `Profile data for user ${userId}`,
+            },
+          ],
+        }),
+      );
+    }
+  } catch (error) {
+    console.error("Error Registering Resources:", error);
+  }
+
   return server;
 }
 // ---------- 2. 创建 StdioClientTransport ----------
@@ -180,7 +322,7 @@ app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
 
 const PORT = process.env.BRIDGE_API_PORT ?? 3000;
 app.listen(PORT, () => {
-  console.log(JSON.stringify(process.env, null, 4));
+  console.log("Environments:", JSON.stringify(process.env, null, 4));
   const expectedToken = process.env.BRIDGE_API_TOKEN;
 
   if (expectedToken) {
