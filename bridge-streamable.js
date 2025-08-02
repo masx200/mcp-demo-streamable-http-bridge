@@ -113,10 +113,18 @@ async function factory() {
       const tools = listOutputs.tools;
       await Promise.all(
         tools.tools.map(async (tool) => {
-          console.log("Registering tool: ", {
-            name: tool.name,
-            description: tool.description,
-          });
+          console.log(
+            "Registering tool: ",
+            JSON.stringify(
+              {
+                name: tool.name,
+                description: tool.description,
+                annotations: tool.annotations,
+              },
+              null,
+              4
+            )
+          );
           //json schema需要和zod schema进行转换，否则找不到输入参数！
 
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
@@ -136,7 +144,10 @@ async function factory() {
               outputSchema,
             },
             async (params) => {
-              console.log("Calling tool", { name: tool.name, params });
+              console.log(
+                "Calling tool",
+                JSON.stringify({ name: tool.name, params }, null, 4)
+              );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
@@ -156,41 +167,20 @@ async function factory() {
   try {
     if (capabilities.prompts && listOutputs.prompts) {
       server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-        return {
-          prompts: [
-            {
-              name: "example-prompt",
-              description: "An example prompt template",
-              arguments: [
-                {
-                  name: "arg1",
-                  description: "Example argument",
-                  required: true,
-                },
-              ],
-            },
-          ],
-        };
+        console.log("Listing prompts...");
+        return listOutputs.prompts;
       });
 
       server.server.setRequestHandler(
         GetPromptRequestSchema,
         async (request) => {
-          if (request.params.name !== "example-prompt") {
-            throw new Error("Unknown prompt");
-          }
-          return {
-            description: "Example prompt",
-            messages: [
-              {
-                role: "user",
-                content: {
-                  type: "text",
-                  text: "Example prompt text",
-                },
-              },
-            ],
-          };
+          console.log(
+            "Getting prompt...",
+            JSON.stringify(request.params, null, 4)
+          );
+          const result = await client.getPrompt(request.params);
+          // console.log("Get prompt result:", JSON.stringify(result, null, 4));
+          return result;
         }
       );
     }
