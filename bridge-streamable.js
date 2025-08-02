@@ -195,5 +195,5 @@ app.listen(PORT, () => {
   console.log(
     `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
-  console.log(`📦 Backend: ${command} ${args.join(" ")}`);
+  console.log(`📦 stdio Backend: ${command} ${args.join(" ")}`);
 });
