@@ -193,7 +193,6 @@ node bridge-streamable.js node index-stdio.js
 }
 ```
 
-
 #### 5. 客户端连接 streamable-http 配置示例
 
 创建 `client-streamable-config.json`：
@@ -259,14 +258,13 @@ node bridge-streamable.js node index-stdio.js
 ```json
 {
   "mcpServers": {
-      "gitee": {
-        "url": "http://localhost:3000/mcp",
-        "transport": "streamable-http",
-        "headers": {
-          "Authorization": "Bearer your-token"
-        }
+    "gitee": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer your-token"
       }
     }
   }
-
+}
 ```
