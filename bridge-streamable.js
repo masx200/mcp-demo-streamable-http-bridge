@@ -183,7 +183,7 @@ async function factory() {
           return result;
         }
       );
-
+    }
    
   } catch (error) {
     console.error("Error Registering prompts:", error);
