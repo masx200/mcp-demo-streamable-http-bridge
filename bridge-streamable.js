@@ -180,10 +180,18 @@ app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
 
 const PORT = process.env.BRIDGE_API_PORT ?? 3000;
 app.listen(PORT, () => {
+  console.log(JSON.stringify(process.env, null, 4));
   const expectedToken = process.env.BRIDGE_API_TOKEN;
-  console.log(
-    `Bridge server listening on port ${PORT} with token ${expectedToken}`,
-  );
+
+  if (expectedToken) {
+    console.log(
+      `Bridge server listening on port ${PORT} with token ${expectedToken}`,
+    );
+  } else {
+    console.log(
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening without token`,
+    );
+  }
   console.log(
     `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
