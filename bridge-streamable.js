@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 // ---------- 1. 解析命令行 ----------
 const [, , ...rawArgs] = process.argv;
 if (rawArgs.length === 0) {
-  console.error("用法: node bridge.js <command> [arg1] [arg2] ...");
+  console.error("用法: node bridge-streamable.js <command> [arg1] [arg2] ...");
   process.exit(1);
 }
 const [command, ...args] = rawArgs;
