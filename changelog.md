@@ -50,3 +50,9 @@ set BRIDGE_API_PORT=8080
 set BRIDGE_API_PWD=C:\\Users\\user\\projects
 node bridge-streamable.js node index-stdio.js
 ```
+
+## 修复资源清理问题并改进错误处理
+
+确保在传输关闭或出错时正确清理服务器、客户端和传输资源
+
+添加传输错误处理逻辑以增强稳定性

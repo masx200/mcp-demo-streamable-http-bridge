@@ -5,12 +5,12 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-  ReadResourceRequestSchema,
   GetPromptRequestSchema,
   isInitializeRequest,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
@@ -52,7 +52,7 @@ async function factory() {
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
   // client.close();
   await client.connect(stdioTransport);
@@ -92,7 +92,7 @@ async function factory() {
 
     console.log(
       "Registering ResourcesTemplates:",
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -107,7 +107,7 @@ async function factory() {
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
   try {
     if (capabilities.tools && listOutputs.tools) {
@@ -123,8 +123,8 @@ async function factory() {
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //json schema需要和zod schema进行转换，否则找不到输入参数！
 
@@ -147,7 +147,7 @@ async function factory() {
             async (params) => {
               console.log(
                 "Calling tool",
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
@@ -156,9 +156,9 @@ async function factory() {
 
               // console.log("Tool result:", result);
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -177,12 +177,12 @@ async function factory() {
         async (request) => {
           console.log(
             "Getting prompt...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           // console.log("Get prompt result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -195,36 +195,36 @@ async function factory() {
         async (request) => {
           console.log(
             "Reading resource...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           // console.log("Read resource result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
       server.server.setRequestHandler(
         ListResourcesRequestSchema,
         async (request) => {
           console.log(
             "Listing resources...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = listOutputs.resources;
           // console.log("List outputs result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
       server.server.setRequestHandler(
         ListResourceTemplatesRequestSchema,
         async (request) => {
           console.log(
             "Listing resourceTemplates...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = listOutputs.resourceTemplates;
           // console.log("List outputs result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -277,14 +277,14 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 app.use(authenticateToken);
 
 const transports = new Map(); // sessionId -> StreamableHTTPServerTransport
-const config_STREAMABLE_HTTP_PATH =
-  process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
+const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
+  "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"];
   let transport;
@@ -357,15 +357,15 @@ app.listen(PORT, (error) => {
 
   if (expectedToken) {
     console.log(
-      `Bridge server listening on port ${PORT} with token ${expectedToken}`
+      `Bridge server listening on port ${PORT} with token ${expectedToken}`,
     );
   } else {
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`,
     );
   }
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
   console.log(`📦 stdio Backend: ${command} ${args.join(" ")}`);
 });
