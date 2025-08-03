@@ -42,7 +42,7 @@ async function factory() {
     cwd: process.env.BRIDGE_API_PWD || process.cwd(),
     env: process.env,
   });
-
+  // stdioTransport.close();
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
   const client = new Client(
     { name: "bridge-client", version: "1.0.0" },
@@ -54,6 +54,7 @@ async function factory() {
       },
     }
   );
+  // client.close();
   await client.connect(stdioTransport);
   const capabilities = await getServerCapabilities(client);
   console.log("capabilities:", capabilities);
@@ -229,8 +230,8 @@ async function factory() {
   } catch (error) {
     console.error("Error Registering Resources:", error);
   }
-
-  return server;
+  // server.close()
+  return { server, client, transport: stdioTransport };
 }
 // ---------- 2. 创建 StdioClientTransport ----------
 
@@ -304,17 +305,31 @@ app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
       // enableDnsRebindingProtection: true,
       // allowedHosts: ['127.0.0.1', 'localhost'],
     });
-
+    const server = await factory();
     // Clean up transport when closed
     transport.onclose = () => {
       if (transport.sessionId) {
         console.log(`Session closed: ${transport.sessionId}`);
         transports.delete(transport.sessionId);
       }
+      server.server.close();
+      server.client.close();
+      server.transport.close();
     };
-    const server = await factory();
+
+    transport.onerror = (error) => {
+      if (transport.sessionId) {
+        console.log(`Session errored: ${transport.sessionId}`);
+        transports.delete(transport.sessionId);
+      }
+      console.error("Transport errored", error);
+      server.server.close();
+      server.client.close();
+      server.transport.close();
+    };
+
     // Connect to the MCP server
-    await server.connect(transport);
+    await server.server.connect(transport);
   } else {
     // Invalid request
     res.status(400).json({
