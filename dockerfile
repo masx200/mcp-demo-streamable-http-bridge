@@ -76,7 +76,7 @@ run pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 run pip install uv --break-system-packages
 
 
-WORKDIR /root/mcp-demo-streamable-http-bridge
+WORKDIR /root/mcp-streamable-http-bridge
 
 
 
@@ -97,7 +97,7 @@ run yarn run build
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-CMD [ "node","/root/mcp-demo-streamable-http-bridge/bridge-streamable-ts.js" ]
+CMD [ "node","/root/mcp-streamable-http-bridge/bridge-streamable-ts.js" ]
 
 
 
