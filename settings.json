@@ -1,0 +1,29 @@
+{
+  "pathPrefix": "/mcp",
+  "hotReload": true,
+  "apiKey": "your-secret-api-key",
+  "port": 3000,
+  "host": "localhost",
+  "corsAllowOrigins": ["*"],
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": "/path/to/custom/memory.json"
+      }
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time", "--local-timezone=America/New_York"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/directory"
+      ]
+    }
+  }
+}

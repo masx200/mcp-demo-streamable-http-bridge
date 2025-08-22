@@ -1,10 +1,14 @@
 {
+  "packageManager": "yarn@4.9.2",
   "type": "module",
   "name": "@masx200/mcp-streamable-http-bridge",
   "version": "1.0.0",
   "description": "A simple MCP calculator supporting addition, subtraction, multiplication and division",
   "scripts": {
-    "start:bridge": "node bridge-streamable.js"
+    "start:bridge": "node bridge-streamable.js",
+    "start:bridge-ts": "node bridge-streamable-ts.js",
+    "build:ts": "npx tsc bridge-streamable-ts.ts",
+    "dev:ts": "npx ts-node bridge-streamable-ts.ts"
   },
   "keywords": [
     "mcp",
@@ -15,11 +19,19 @@
   "license": "MIT",
   "dependencies": {
     "@dmitryrechkin/json-schema-to-zod": "^1.0.1",
-    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@modelcontextprotocol/sdk": "^1.17.3",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "@types/yargs": "^17.0.33",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "json-zod": "^0.1.0",
+    "typescript": "^5.9.2",
+    "yargs": "^18.0.0",
     "zod": "^3.23.8"
   },
-  "bin": {}
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
 }

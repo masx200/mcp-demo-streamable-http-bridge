@@ -43,21 +43,17 @@ async function factory(transport) {
     env: process.env,
   });
 
+  //在stdio进程退出时，关闭服务端transport
 
+  stdioTransport.onclose = () => {
+    console.log("stdio process closed");
+    transport.close();
+  };
 
-//在stdio进程退出时，关闭服务端transport
-
-stdioTransport.onclose=()=>{
-console.log("stdio process closed")
-transport.close()
-
-}
-
-stdioTransport.onerror=(error)=>{
-console.log("stdio process errored",error)
-transport.close()
-
-}
+  stdioTransport.onerror = (error) => {
+    console.log("stdio process errored", error);
+    transport.close();
+  };
   // stdioTransport.close();
   // ---------- 3. 创建 MCP Client（仅用于桥接转发） ----------
   const client = new Client(
