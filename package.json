@@ -5,6 +5,7 @@
   "version": "2.0.0",
   "description": "A simple MCP calculator supporting addition, subtraction, multiplication and division",
   "scripts": {
+    "build": "npx tsc  -p tsconfig.json",
     "start:bridge": "node bridge-streamable.js",
     "start:bridge-ts": "yarn run build:ts && node bridge-streamable-ts.js",
     "build:ts": "npx tsc  -p tsconfig.json",
