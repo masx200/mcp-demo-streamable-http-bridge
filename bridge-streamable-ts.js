@@ -239,8 +239,8 @@ async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    ? //@ts-ignore
-                        JSONSchemaToZod.convert(tool.outputSchema).shape
+                    //@ts-ignore
+                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -322,9 +322,9 @@ async function initializeServers() {
     // 清理现有服务器
     for (const [serverName, instance] of servers) {
         try {
-            instance.server.close();
-            instance.client.close();
-            instance.transport.close();
+            instance?.server?.close();
+            instance?.client?.close();
+            instance?.transport?.close();
             if (instance.httpTransport) {
                 instance.httpTransport.close();
             }
@@ -337,8 +337,8 @@ async function initializeServers() {
     // 创建新服务器
     for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
         try {
-            const instance = await createMcpServer(serverName, serverConfig);
-            servers.set(serverName, instance);
+            // const instance = await createMcpServer(serverName, serverConfig);
+            servers.set(serverName, { config: serverConfig });
             console.log(`✅ Server '${serverName}' initialized successfully`);
         }
         catch (error) {
@@ -496,7 +496,18 @@ async function main() {
                     }
                     console.error("Transport errored", error);
                 };
+                const serverName = key;
+                const serverConfig = value.config;
+                // 初始化MCP服务器,懒加载实现
+                console.log("Initializing MCP server", serverName, serverConfig);
+                if (!serverInstance?.server) {
+                    const instance = await createMcpServer(serverName, serverConfig);
+                    serverInstance.server = instance.server;
+                    serverInstance.client = instance.client;
+                    serverInstance.transport = instance.transport;
+                }
                 // 连接到MCP服务器
+                //@ts-ignore
                 await serverInstance.server.connect(transport);
             }
             else {

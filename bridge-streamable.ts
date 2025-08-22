@@ -28,14 +28,14 @@ async function getServerCapabilities(
       method: string;
       params?:
         | {
-            [x: string]: unknown;
-            _meta?:
-              | {
-                  [x: string]: unknown;
-                  progressToken?: string | number | undefined;
-                }
-              | undefined;
-          }
+          [x: string]: unknown;
+          _meta?:
+            | {
+              [x: string]: unknown;
+              progressToken?: string | number | undefined;
+            }
+            | undefined;
+        }
         | undefined;
     },
     {
@@ -45,7 +45,7 @@ async function getServerCapabilities(
         | undefined;
     },
     { [x: string]: unknown; _meta?: { [x: string]: unknown } | undefined }
-  >
+  >,
 ) {
   try {
     return await client.getServerCapabilities();
@@ -65,12 +65,12 @@ async function factory(transport: StreamableHTTPServerTransport) {
   const stdioTransport = clienttransport
     ? clienttransport
     : new StdioClientTransport({
-        //@ts-ignore
-        command,
-        args,
-        cwd: process.env.BRIDGE_API_PWD || process.cwd(),
-        env: process.env as Record<string, string> | undefined,
-      });
+      //@ts-ignore
+      command,
+      args,
+      cwd: process.env.BRIDGE_API_PWD || process.cwd(),
+      env: process.env as Record<string, string> | undefined,
+    });
   clienttransport = stdioTransport;
   //在stdio进程退出时，关闭服务端transport
 
@@ -93,7 +93,7 @@ async function factory(transport: StreamableHTTPServerTransport) {
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
   // client.close();
   await client.connect(stdioTransport);
@@ -152,7 +152,7 @@ async function factory(transport: StreamableHTTPServerTransport) {
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       ` Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -170,7 +170,7 @@ async function factory(transport: StreamableHTTPServerTransport) {
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
   try {
     if (capabilities.tools && listOutputs.tools) {
@@ -195,16 +195,16 @@ async function factory(transport: StreamableHTTPServerTransport) {
                   annotations: tool.annotations,
                 },
                 null,
-                4
-              )
+                4,
+              ),
             );
             //json schema需要和zod schema进行转换，否则找不到输入参数！
             //@ts-ignore
             const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
             // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
             const outputSchema = tool.outputSchema
-              ? //@ts-ignore
-                JSONSchemaToZod.convert(tool.outputSchema).shape
+              //@ts-ignore
+              ? JSONSchemaToZod.convert(tool.outputSchema).shape
               : tool.outputSchema;
             // console.log("Registering tool:inputSchema: ", inputSchema)
             server.registerTool(
@@ -222,7 +222,7 @@ async function factory(transport: StreamableHTTPServerTransport) {
               async (params: any) => {
                 console.log(
                   "Calling tool",
-                  JSON.stringify({ name: tool.name, params }, null, 4)
+                  JSON.stringify({ name: tool.name, params }, null, 4),
                 );
                 const result = await client.callTool({
                   name: tool.name,
@@ -231,10 +231,10 @@ async function factory(transport: StreamableHTTPServerTransport) {
 
                 // console.log("Tool result:", result);
                 return result;
-              }
+              },
             );
-          }
-        )
+          },
+        ),
       );
     }
   } catch (error) {
@@ -254,12 +254,12 @@ async function factory(transport: StreamableHTTPServerTransport) {
         async (request) => {
           console.log(
             "Getting prompt...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           // console.log("Get prompt result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -272,12 +272,12 @@ async function factory(transport: StreamableHTTPServerTransport) {
         async (request) => {
           console.log(
             "Reading resource...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           // console.log("Read resource result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
       server.server.setRequestHandler(
         ListResourcesRequestSchema,
@@ -285,12 +285,12 @@ async function factory(transport: StreamableHTTPServerTransport) {
         async (request) => {
           console.log(
             "Listing resources...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = listOutputs.resources;
           // console.log("List outputs result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
       server.server.setRequestHandler(
         ListResourceTemplatesRequestSchema,
@@ -298,12 +298,12 @@ async function factory(transport: StreamableHTTPServerTransport) {
         async (request) => {
           console.log(
             "Listing resourceTemplates...",
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = listOutputs.resourceTemplates;
           // console.log("List outputs result:", JSON.stringify(result, null, 4));
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -321,7 +321,7 @@ const app = express();
 const authenticateToken = (
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -360,14 +360,14 @@ app.use(
   cors({
     exposedHeaders: ["Mcp-Session-Id"],
     allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 app.use(authenticateToken);
 
 const transports = new Map<string, StreamableHTTPServerTransport>(); // sessionId -> StreamableHTTPServerTransport
-const config_STREAMABLE_HTTP_PATH =
-  process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
+const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
+  "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"] as string;
   let transport: StreamableHTTPServerTransport;
@@ -442,15 +442,15 @@ app.listen(PORT, (error) => {
 
   if (expectedToken) {
     console.log(
-      `Bridge server listening on port ${PORT} with token ${expectedToken}`
+      `Bridge server listening on port ${PORT} with token ${expectedToken}`,
     );
   } else {
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on port ${PORT} without token`,
     );
   }
   console.log(
-    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`
+    `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://localhost:${PORT}${config_STREAMABLE_HTTP_PATH}`,
   );
   console.log(`📦 stdio Backend: ${command} ${args.join(" ")}`);
 });

@@ -134,8 +134,8 @@ async function factory(transport) {
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 // console.log("Registering tool: ", JSON.stringify(tool, null, 4))
                 const outputSchema = tool.outputSchema
-                    ? //@ts-ignore
-                        JSONSchemaToZod.convert(tool.outputSchema).shape
+                    //@ts-ignore
+                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 // console.log("Registering tool:inputSchema: ", inputSchema)
                 server.registerTool(tool.name, {
@@ -253,7 +253,8 @@ app.use(cors({
 app.use(express.json());
 app.use(authenticateToken);
 const transports = new Map(); // sessionId -> StreamableHTTPServerTransport
-const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
+const config_STREAMABLE_HTTP_PATH = process.env.BRIDGE_STREAMABLE_HTTP_PATH ||
+    "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"];
     let transport;

@@ -21,10 +21,10 @@ export interface Config {
     };
 }
 export interface ServerInstance {
-    server: McpServer;
-    client: Client;
-    transport: StdioClientTransport;
-    httpTransport: StreamableHTTPServerTransport;
+    server?: McpServer;
+    client?: Client;
+    transport?: StdioClientTransport;
+    httpTransport?: StreamableHTTPServerTransport;
     config: {
         command: string;
         args: string[];
