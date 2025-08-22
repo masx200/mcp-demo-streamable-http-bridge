@@ -606,9 +606,9 @@ async function main() {
     console.log(
       "registering pathPrefix",
       pathPrefix + "/" + key,
-      encodeURIComponent(pathPrefix + "/" + key),
+      (pathPrefix + "/" + encodeURIComponent(key)),
     );
-    app.all(encodeURIComponent(pathPrefix + "/" + key), async (req, res) => {
+    app.all((pathPrefix + "/" + encodeURIComponent(key)), async (req, res) => {
       const sessionId = req.headers["mcp-session-id"] as string;
       let transport: StreamableHTTPServerTransport;
 
@@ -706,8 +706,8 @@ async function main() {
     // 打印所有MCP HTTP端点
     console.log("🌐 Available MCP HTTP endpoints:");
     for (const [key] of servers) {
-      const endpoint = `${pathPrefix}/${key}`;
-      const encodedEndpoint = encodeURIComponent(endpoint);
+      const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
+      const encodedEndpoint = (endpoint);
       console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
     }
   });

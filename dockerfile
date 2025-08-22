@@ -102,7 +102,7 @@ CMD [ "node","/root/mcp-demo-streamable-http-bridge/bridge-streamable-ts.js" ]
 
 
 run  uv  venv 
-run pip install "mcp-server-time"
+run pip install "mcp-server-time" --break-system-packages
 env UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 run uv pip install "mcp-server-time" 
 
