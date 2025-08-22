@@ -1,5 +1,4 @@
 {
-  
   "pathPrefix": "/mcp",
   "hotReload": true,
   "apiKey": "your-secret-api-key",

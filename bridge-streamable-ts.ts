@@ -34,6 +34,8 @@ export interface Config {
     [key: string]: {
       command: string;
       args: string[];
+      cwd?: string;
+      env?: Record<string, string>;
     };
   };
 }
@@ -130,45 +132,38 @@ function loadConfigFile(filePath: string): Config {
 function mergeConfigs(
   cliConfig: Config,
   fileConfig: Config,
-  envConfig: Partial<Config>
+  envConfig: Partial<Config>,
 ): Config {
   return {
     ...DEFAULT_CONFIG,
     ...fileConfig,
     ...cliConfig,
     ...envConfig,
-    port:
-      envConfig.port ||
+    port: envConfig.port ||
       cliConfig.port ||
       fileConfig.port ||
       DEFAULT_CONFIG.port,
-    host:
-      envConfig.host ||
+    host: envConfig.host ||
       cliConfig.host ||
       fileConfig.host ||
       DEFAULT_CONFIG.host,
-    hotReload:
-      envConfig.hotReload ||
+    hotReload: envConfig.hotReload ||
       cliConfig.hotReload ||
       fileConfig.hotReload ||
       DEFAULT_CONFIG.hotReload,
-    pathPrefix:
-      envConfig.pathPrefix ||
+    pathPrefix: envConfig.pathPrefix ||
       cliConfig.pathPrefix ||
       fileConfig.pathPrefix ||
       DEFAULT_CONFIG.pathPrefix,
-    corsAllowOrigins:
-      envConfig.corsAllowOrigins ||
+    corsAllowOrigins: envConfig.corsAllowOrigins ||
       cliConfig.corsAllowOrigins ||
       fileConfig.corsAllowOrigins ||
       DEFAULT_CONFIG.corsAllowOrigins,
-    config:
-      envConfig.config ||
+    config: envConfig.config ||
       cliConfig.config ||
       fileConfig.config ||
       DEFAULT_CONFIG.config,
-    version:
-      envConfig.version ||
+    version: envConfig.version ||
       cliConfig.version ||
       fileConfig.version ||
       DEFAULT_CONFIG.version,
@@ -188,7 +183,7 @@ function loadEnvConfig(): Partial<Config> {
 
 // 获取服务器能力
 async function getServerCapabilities(
-  client: Client
+  client: Client,
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -205,13 +200,20 @@ async function getServerCapabilities(
 // 创建MCP服务器实例
 async function createMcpServer(
   serverName: string,
-  serverConfig: { command: string; args: string[] }
+  serverConfig: {
+    command: string;
+    args: string[];
+    cwd?: string;
+    env?: Record<string, string>;
+  },
 ): Promise<ServerInstance> {
   const stdioTransport = new StdioClientTransport({
     command: serverConfig.command,
     args: serverConfig.args,
-    cwd: process.env.BRIDGE_API_PWD || process.cwd(),
-    env: process.env as Record<string, string>,
+    cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
+    env: Object.assign({}, serverConfig.env, process.env) as
+      | Record<string, string>
+      | undefined,
   });
 
   const client = new Client(
@@ -222,7 +224,7 @@ async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
 
   await client.connect(stdioTransport);
@@ -253,7 +255,7 @@ async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4)
+      JSON.stringify(tools, null, 4),
     );
     listOutputs.tools = tools;
   } catch (error) {
@@ -266,7 +268,7 @@ async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4)
+      JSON.stringify(prompts, null, 4),
     );
     listOutputs.prompts = prompts;
   } catch (error) {
@@ -279,14 +281,14 @@ async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4)
+      JSON.stringify(Resources, null, 4),
     );
     listOutputs.resources = Resources;
 
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -301,7 +303,7 @@ async function createMcpServer(
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
 
   // 注册工具
@@ -319,14 +321,14 @@ async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            ? //@ts-ignore
-              JSONSchemaToZod.convert(tool.outputSchema).shape
+            //@ts-ignore
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -342,16 +344,16 @@ async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -372,11 +374,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -391,11 +393,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           return result;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -404,10 +406,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resources;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -416,10 +418,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resourceTemplates;
-        }
+        },
       );
     }
   } catch (error) {
@@ -500,13 +502,15 @@ async function reloadConfiguration() {
 
   // 重新初始化服务器
   await initializeServers();
+  await server.close();
+  server = await main();
 }
 
 // 认证中间件
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -588,7 +592,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    })
+    }),
   );
 
   app.use(express.json());
@@ -668,14 +672,14 @@ async function main() {
   const port = config.port || 3000;
   const host = config.host || "localhost";
   console.log(JSON.stringify(config, null, 4));
-  app.listen(port, host, (err) => {
+  const server = app.listen(port, host, (err) => {
     if (err) {
       console.error("Failed to start server:", err);
       process.exit(1);
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
     );
 
     if (config.apiKey) {
@@ -687,15 +691,32 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
-        ", "
-      )}`
+      `📦 Configured MCP servers: ${
+        Object.keys(config.mcpServers || {}).join(
+          ", ",
+        )
+      }`,
     );
   });
+
+  return {
+    async close() {
+      return new Promise((resolve, reject) => {
+        server.close((err) => {
+          if (err) {
+            reject(err);
+          }
+          console.log("server closed");
+          resolve(true);
+        });
+      });
+    },
+  };
 }
 
 // 启动应用
-main().catch((error) => {
+
+let server = await main().catch((error) => {
   console.error("Failed to start application:", error);
   process.exit(1);
 });
