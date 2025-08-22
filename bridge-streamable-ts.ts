@@ -463,6 +463,7 @@ async function initializeServers() {
       console.log(`✅ Server '${serverName}' initialized successfully`);
     } catch (error) {
       console.error(`❌ Failed to initialize server '${serverName}':`, error);
+      process.exit(1)
     }
   }
 }

@@ -63,9 +63,9 @@ run npm config set registry https://registry.npmmirror.com
 
 
 env HOME=/root
-run mkdir -pv $HOME/.config/uv/ 
+run mkdir -pv /root/.config/uv/ 
 
-run cat  <<EOF > $HOME/.config/uv/config.toml
+run cat  <<EOF > /root/.config/uv/config.toml
 [[index]]
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
@@ -98,3 +98,10 @@ run yarn run build
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 CMD [ "node","/root/mcp-demo-streamable-http-bridge/bridge-streamable-ts.js" ]
+
+
+
+run  uv  venv 
+
+env UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+run uv pip install "mcp-server-time" 
