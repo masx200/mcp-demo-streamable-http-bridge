@@ -1,41 +1,20 @@
 {
+  "name": "mcp-demo-streamable-http-bridge",
   "packageManager": "yarn@4.9.2",
-  "type": "module",
-  "name": "@masx200/mcp-streamable-http-bridge",
-  "version": "2.0.0",
-  "description": "A simple MCP calculator supporting addition, subtraction, multiplication and division",
+  "version": "1.0.0",
+  "description": "mcp-demo-streamable-http-bridge",
+  "main": "bridge-streamable-ts.js",
+  "devDependencies": {},
   "scripts": {
-    "watch": "npx tsc  -p tsconfig.json --watch",
-    "build": "npx tsc  -p tsconfig.json",
-    "start:bridge": "node bridge-streamable.js",
-    "start:bridge-ts": "yarn run build:ts && node bridge-streamable-ts.js",
-    "build:ts": "npx tsc  -p tsconfig.json",
-    "dev:ts": "npx ts-node bridge-streamable-ts.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "mcp",
-    "calculator",
-    "math"
-  ],
-  "author": "masx200",
-  "license": "MIT",
-  "dependencies": {
-    "@dmitryrechkin/json-schema-to-zod": "^1.0.1",
-    "@modelcontextprotocol/sdk": "^1.17.3",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.0",
-    "@types/yargs": "^17.0.33",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "json-zod": "^0.1.0",
-    "morgan": "^1.10.1",
-    "typescript": "^5.9.2",
-    "yargs": "^18.0.0",
-    "zod": "^3.23.8"
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/masx200/mcp-demo-streamable-http-bridge"
   },
-  "devDependencies": {
-    "@types/morgan": "^1",
-    "ts-node": "^10.9.2"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "types": "./bridge-streamable-ts.d.ts"
 }
