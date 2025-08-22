@@ -4,7 +4,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   GetPromptRequestSchema,
   isInitializeRequest,
@@ -60,15 +59,19 @@ async function getServerCapabilities(
     return capabilities;
   }
 }
+// 全局变量，用于存储StdioClientTransport实例,不再重复创建多个,最多一个
+let clienttransport: StdioClientTransport | undefined;
 async function factory(transport: StreamableHTTPServerTransport) {
-  const stdioTransport = new StdioClientTransport({
-    //@ts-ignore
-    command,
-    args,
-    cwd: process.env.BRIDGE_API_PWD || process.cwd(),
-    env: process.env as Record<string, string> | undefined,
-  });
-
+  const stdioTransport = clienttransport
+    ? clienttransport
+    : new StdioClientTransport({
+        //@ts-ignore
+        command,
+        args,
+        cwd: process.env.BRIDGE_API_PWD || process.cwd(),
+        env: process.env as Record<string, string> | undefined,
+      });
+  clienttransport = stdioTransport;
   //在stdio进程退出时，关闭服务端transport
 
   stdioTransport.onclose = () => {
@@ -316,9 +319,9 @@ const app = express();
 
 // API Token认证中间件
 const authenticateToken = (
-req: express.Request,
+  req: express.Request,
   res: express.Response,
-  next: express.NextFunction,
+  next: express.NextFunction
 ) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -367,7 +370,7 @@ const config_STREAMABLE_HTTP_PATH =
   process.env.BRIDGE_STREAMABLE_HTTP_PATH || "/mcp";
 app.all(config_STREAMABLE_HTTP_PATH, async (req, res) => {
   const sessionId = req.headers["mcp-session-id"] as string;
-  let transport:  StreamableHTTPServerTransport;
+  let transport: StreamableHTTPServerTransport;
 
   if (sessionId && transports.has(sessionId)) {
     //@ts-ignore

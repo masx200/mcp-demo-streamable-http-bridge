@@ -29,14 +29,19 @@ async function getServerCapabilities(client) {
         return capabilities;
     }
 }
+// 全局变量，用于存储StdioClientTransport实例,不再重复创建多个,最多一个
+let clienttransport;
 async function factory(transport) {
-    const stdioTransport = new StdioClientTransport({
-        //@ts-ignore
-        command,
-        args,
-        cwd: process.env.BRIDGE_API_PWD || process.cwd(),
-        env: process.env,
-    });
+    const stdioTransport = clienttransport
+        ? clienttransport
+        : new StdioClientTransport({
+            //@ts-ignore
+            command,
+            args,
+            cwd: process.env.BRIDGE_API_PWD || process.cwd(),
+            env: process.env,
+        });
+    clienttransport = stdioTransport;
     //在stdio进程退出时，关闭服务端transport
     stdioTransport.onclose = () => {
         console.log("stdio process closed");
