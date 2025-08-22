@@ -463,7 +463,7 @@ async function initializeServers() {
       console.log(`✅ Server '${serverName}' initialized successfully`);
     } catch (error) {
       console.error(`❌ Failed to initialize server '${serverName}':`, error);
-      process.exit(1)
+      process.exit(1);
     }
   }
 }
@@ -603,8 +603,12 @@ async function main() {
   const pathPrefix = config.pathPrefix || "/mcp";
   for (const [key, value] of servers) {
     // 处理MCP请求
-    console.log("registering pathPrefix", pathPrefix + "/" + key);
-    app.all(pathPrefix + "/" + key, async (req, res) => {
+    console.log(
+      "registering pathPrefix",
+      pathPrefix + "/" + key,
+      encodeURIComponent(pathPrefix + "/" + key),
+    );
+    app.all(encodeURIComponent(pathPrefix + "/" + key), async (req, res) => {
       const sessionId = req.headers["mcp-session-id"] as string;
       let transport: StreamableHTTPServerTransport;
 
@@ -698,6 +702,14 @@ async function main() {
         )
       }`,
     );
+
+    // 打印所有MCP HTTP端点
+    console.log("🌐 Available MCP HTTP endpoints:");
+    for (const [key] of servers) {
+      const endpoint = `${pathPrefix}/${key}`;
+      const encodedEndpoint = encodeURIComponent(endpoint);
+      console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+    }
   });
 
   return {
