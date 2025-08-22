@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { GetPromptRequestSchema, isInitializeRequest, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
+import morgan from "morgan";
 import fs from "fs";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
@@ -425,6 +426,8 @@ async function main() {
     await initializeServers();
     // 创建Express应用
     const app = express();
+    // 添加日志中间件
+    app.use(morgan('combined'));
     // CORS配置
     app.use(cors({
         origin: config.corsAllowOrigins,
@@ -437,8 +440,8 @@ async function main() {
     const pathPrefix = config.pathPrefix || "/mcp";
     for (const [key, value] of servers) {
         // 处理MCP请求
-        console.log("registering pathPrefix", pathPrefix + "/" + key, encodeURIComponent(pathPrefix + "/" + key));
-        app.all(encodeURIComponent(pathPrefix + "/" + key), async (req, res) => {
+        console.log("registering pathPrefix", pathPrefix + "/" + key, (pathPrefix + "/" + encodeURIComponent(key)));
+        app.all((pathPrefix + "/" + encodeURIComponent(key)), async (req, res) => {
             const sessionId = req.headers["mcp-session-id"];
             let transport;
             if (sessionId && transports.has(sessionId)) {
@@ -517,8 +520,8 @@ async function main() {
         // 打印所有MCP HTTP端点
         console.log("🌐 Available MCP HTTP endpoints:");
         for (const [key] of servers) {
-            const endpoint = `${pathPrefix}/${key}`;
-            const encodedEndpoint = encodeURIComponent(endpoint);
+            const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
+            const encodedEndpoint = (endpoint);
             console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
         }
     });

@@ -14,6 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
+import morgan from "morgan";
 import fs from "fs";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
@@ -586,6 +587,9 @@ async function main() {
 
   // 创建Express应用
   const app = express();
+
+  // 添加日志中间件
+  app.use(morgan('combined'));
 
   // CORS配置
   app.use(
