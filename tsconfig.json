@@ -1,6 +1,8 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     // File Layout
     // "rootDir": "./src",
     // "outDir": "./dist",
@@ -19,10 +21,10 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-
+    "exactOptionalPropertyTypes": false,
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+   
 
     // Style Options
     // "noImplicitReturns": true,

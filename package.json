@@ -2,12 +2,12 @@
   "packageManager": "yarn@4.9.2",
   "type": "module",
   "name": "@masx200/mcp-streamable-http-bridge",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A simple MCP calculator supporting addition, subtraction, multiplication and division",
   "scripts": {
     "start:bridge": "node bridge-streamable.js",
-    "start:bridge-ts": "node bridge-streamable-ts.js",
-    "build:ts": "npx tsc bridge-streamable-ts.ts",
+    "start:bridge-ts": "yarn run build:ts && node bridge-streamable-ts.js",
+    "build:ts": "npx tsc  -p tsconfig.json",
     "dev:ts": "npx ts-node bridge-streamable-ts.ts"
   },
   "keywords": [
