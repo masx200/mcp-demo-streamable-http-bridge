@@ -4,12 +4,12 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-    GetPromptRequestSchema,
-    isInitializeRequest,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ListResourceTemplatesRequestSchema,
-    ReadResourceRequestSchema,
+  GetPromptRequestSchema,
+  isInitializeRequest,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
@@ -34,8 +34,7 @@ export interface Config {
     };
   };
 }
-export 
-interface ServerInstance {
+export interface ServerInstance {
   server: McpServer;
   client: Client;
   transport: StdioClientTransport;
@@ -51,16 +50,7 @@ const DEFAULT_CONFIG: Config = {
   port: 3000,
   host: "localhost",
   corsAllowOrigins: ["*"],
-  mcpServers: {
-    memory: {
-      command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-memory"],
-    },
-    time: {
-      command: "uvx",
-      args: ["mcp-server-time", "--local-timezone=America/New_York"],
-    },
-  },
+  mcpServers: {},
 };
 
 // 全局变量

@@ -180,11 +180,14 @@ TypeScript 版本支持同时运行多个 MCP
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": "/path/to/custom/memory.json"
+      }
     },
     "time": {
       "command": "uvx",
-      "args": ["mcp-server-time"]
+      "args": ["mcp-server-time", "--local-timezone=America/New_York"]
     }
   }
 }

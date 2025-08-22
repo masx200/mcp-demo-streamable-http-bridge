@@ -68,16 +68,7 @@ var DEFAULT_CONFIG = {
     port: 3000,
     host: "localhost",
     corsAllowOrigins: ["*"],
-    mcpServers: {
-        memory: {
-            command: "npx",
-            args: ["-y", "@modelcontextprotocol/server-memory"],
-        },
-        time: {
-            command: "uvx",
-            args: ["mcp-server-time", "--local-timezone=America/New_York"],
-        },
-    },
+    mcpServers: {},
 };
 // 全局变量
 var config = __assign({}, DEFAULT_CONFIG);

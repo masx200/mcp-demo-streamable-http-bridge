@@ -31,7 +31,7 @@
     // "noUnusedParameters": true,
     // "noFallthroughCasesInSwitch": true,
     // "noPropertyAccessFromIndexSignature": true,
-
+    "pretty": true,
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
