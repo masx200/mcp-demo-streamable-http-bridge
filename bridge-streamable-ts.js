@@ -239,8 +239,8 @@ async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ? //@ts-ignore
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -308,6 +308,7 @@ async function createMcpServer(serverName, serverConfig) {
         console.error(`[${serverName}] Error Registering Resources:`, error);
     }
     return {
+        config: serverConfig,
         server,
         client,
         transport: stdioTransport,

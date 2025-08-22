@@ -25,5 +25,11 @@ export interface ServerInstance {
     client: Client;
     transport: StdioClientTransport;
     httpTransport: StreamableHTTPServerTransport;
+    config: {
+        command: string;
+        args: string[];
+        cwd?: string;
+        env?: Record<string, string>;
+    };
 }
 //# sourceMappingURL=bridge-streamable-ts.d.ts.map
