@@ -24,7 +24,6 @@
     "exactOptionalPropertyTypes": false,
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
-   
 
     // Style Options
     // "noImplicitReturns": true,

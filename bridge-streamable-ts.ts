@@ -4,13 +4,13 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-    GetPromptRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourceTemplatesRequestSchema,
-    ListResourcesRequestSchema,
-    ReadResourceRequestSchema,
-    isInitializeRequest,
-    type ServerCapabilities
+  GetPromptRequestSchema,
+  isInitializeRequest,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+  type ServerCapabilities,
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
@@ -130,7 +130,7 @@ function loadConfigFile(filePath: string): Config {
 function mergeConfigs(
   cliConfig: Config,
   fileConfig: Config,
-  envConfig: Partial<Config>
+  envConfig: Partial<Config>,
 ): Config {
   return {
     ...DEFAULT_CONFIG,
@@ -153,7 +153,7 @@ function loadEnvConfig(): Partial<Config> {
 
 // 获取服务器能力
 async function getServerCapabilities(
-  client: Client
+  client: Client,
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -170,7 +170,7 @@ async function getServerCapabilities(
 // 创建MCP服务器实例
 async function createMcpServer(
   serverName: string,
-  serverConfig: { command: string; args: string[] }
+  serverConfig: { command: string; args: string[] },
 ): Promise<ServerInstance> {
   const stdioTransport = new StdioClientTransport({
     command: serverConfig.command,
@@ -187,7 +187,7 @@ async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
 
   await client.connect(stdioTransport);
@@ -218,7 +218,7 @@ async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4)
+      JSON.stringify(tools, null, 4),
     );
     listOutputs.tools = tools;
   } catch (error) {
@@ -231,7 +231,7 @@ async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4)
+      JSON.stringify(prompts, null, 4),
     );
     listOutputs.prompts = prompts;
   } catch (error) {
@@ -244,14 +244,14 @@ async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4)
+      JSON.stringify(Resources, null, 4),
     );
     listOutputs.resources = Resources;
 
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -266,7 +266,7 @@ async function createMcpServer(
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
 
   // 注册工具
@@ -284,14 +284,14 @@ async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            ? //@ts-ignore
-              JSONSchemaToZod.convert(tool.outputSchema).shape
+            //@ts-ignore
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -307,16 +307,16 @@ async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -337,11 +337,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -356,11 +356,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           return result;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -369,10 +369,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resources;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -381,10 +381,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resourceTemplates;
-        }
+        },
       );
     }
   } catch (error) {
@@ -466,7 +466,7 @@ async function reloadConfiguration() {
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -543,7 +543,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    })
+    }),
   );
 
   app.use(express.json());
@@ -551,73 +551,72 @@ async function main() {
 
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const pathPrefix = config.pathPrefix || "/mcp";
-for (const [key,value]of servers){
- // 处理MCP请求
-  app.all(pathPrefix+"/"+key, async (req, res) => {
-    const sessionId = req.headers["mcp-session-id"] as string;
-    let transport: StreamableHTTPServerTransport;
+  for (const [key, value] of servers) {
+    // 处理MCP请求
+    app.all(pathPrefix + "/" + key, async (req, res) => {
+      const sessionId = req.headers["mcp-session-id"] as string;
+      let transport: StreamableHTTPServerTransport;
 
-    if (sessionId && transports.has(sessionId)) {
-      transport = transports.get(sessionId)!;
-    } else if (!sessionId && isInitializeRequest(req.body)) {
-      // 新的初始化请求
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sessionId) => {
-          transports.set(transport.sessionId!, transport);
-          console.log(`New session initialized: ${sessionId}`);
-        },
-      });
+      if (sessionId && transports.has(sessionId)) {
+        transport = transports.get(sessionId)!;
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        // 新的初始化请求
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sessionId) => {
+            transports.set(transport.sessionId!, transport);
+            console.log(`New session initialized: ${sessionId}`);
+          },
+        });
 
-      // 选择第一个可用的服务器实例
-      const serverInstance = value
-      if (!serverInstance) {
-        return res.status(500).json({
+        // 选择第一个可用的服务器实例
+        const serverInstance = value;
+        if (!serverInstance) {
+          return res.status(500).json({
+            jsonrpc: "2.0",
+            error: {
+              code: -32003,
+              message: "No MCP servers available",
+            },
+            id: null,
+          });
+        }
+
+        serverInstance.httpTransport = transport;
+
+        // 清理传输
+        transport.onclose = () => {
+          if (transport.sessionId) {
+            console.log(`Session closed: ${transport.sessionId}`);
+            transports.delete(transport.sessionId);
+          }
+        };
+
+        transport.onerror = (error) => {
+          if (transport.sessionId) {
+            console.log(`Session errored: ${transport.sessionId}`);
+            transports.delete(transport.sessionId);
+          }
+          console.error("Transport errored", error);
+        };
+
+        // 连接到MCP服务器
+        await serverInstance.server.connect(transport);
+      } else {
+        // 无效请求
+        return res.status(400).json({
           jsonrpc: "2.0",
           error: {
-            code: -32003,
-            message: "No MCP servers available",
+            code: -32000,
+            message: "Bad Request: No valid session ID provided",
           },
           id: null,
         });
       }
 
-      serverInstance.httpTransport = transport;
-
-      // 清理传输
-      transport.onclose = () => {
-        if (transport.sessionId) {
-          console.log(`Session closed: ${transport.sessionId}`);
-          transports.delete(transport.sessionId);
-        }
-      };
-
-      transport.onerror = (error) => {
-        if (transport.sessionId) {
-          console.log(`Session errored: ${transport.sessionId}`);
-          transports.delete(transport.sessionId);
-        }
-        console.error("Transport errored", error);
-      };
-
-      // 连接到MCP服务器
-      await serverInstance.server.connect(transport);
-    } else {
-      // 无效请求
-      return res.status(400).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: No valid session ID provided",
-        },
-        id: null,
-      });
-    }
-
-    await transport.handleRequest(req, res, req.body);
-  });
-}
- 
+      await transport.handleRequest(req, res, req.body);
+    });
+  }
 
   // 启动服务器
   const port = config.port || 3000;
@@ -630,7 +629,7 @@ for (const [key,value]of servers){
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
     );
 
     if (config.apiKey) {
@@ -642,9 +641,11 @@ for (const [key,value]of servers){
     }
 
     console.log(
-      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
-        ", "
-      )}`
+      `📦 Configured MCP servers: ${
+        Object.keys(config.mcpServers || {}).join(
+          ", ",
+        )
+      }`,
     );
   });
 }
