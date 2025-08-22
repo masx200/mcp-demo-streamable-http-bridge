@@ -200,13 +200,25 @@ async function createMcpServer(serverName, serverConfig) {
         const Resources = await client.listResources();
         console.log(`[${serverName}] Registering Resources:`, JSON.stringify(Resources, null, 4));
         listOutputs.resources = Resources;
+    }
+    catch (error) {
+        console.error(`[${serverName}] Error listing Resources:`, error);
+        capabilities.resources = undefined;
+        if (listOutputs.resources || listOutputs.resourceTemplates) {
+            capabilities.resources = {};
+        }
+    }
+    try {
         const ResourcesTemplates = await client.listResourceTemplates();
         console.log(`[${serverName}] Registering ResourcesTemplates:`, JSON.stringify(ResourcesTemplates, null, 4));
         listOutputs.resourceTemplates = ResourcesTemplates;
     }
     catch (error) {
-        console.error(`[${serverName}] Error listing Resources:`, error);
+        console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
         capabilities.resources = undefined;
+        if (listOutputs.resources || listOutputs.resourceTemplates) {
+            capabilities.resources = {};
+        }
     }
     const server = new McpServer({
         name: `bridge-service-${serverName}`,
@@ -427,7 +439,7 @@ async function main() {
     // 创建Express应用
     const app = express();
     // 添加日志中间件
-    app.use(morgan('combined'));
+    app.use(morgan("combined"));
     // CORS配置
     app.use(cors({
         origin: config.corsAllowOrigins,
@@ -440,8 +452,8 @@ async function main() {
     const pathPrefix = config.pathPrefix || "/mcp";
     for (const [key, value] of servers) {
         // 处理MCP请求
-        console.log("registering pathPrefix", pathPrefix + "/" + key, (pathPrefix + "/" + encodeURIComponent(key)));
-        app.all((pathPrefix + "/" + encodeURIComponent(key)), async (req, res) => {
+        console.log("registering pathPrefix", pathPrefix + "/" + key, pathPrefix + "/" + encodeURIComponent(key));
+        app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
             const sessionId = req.headers["mcp-session-id"];
             let transport;
             if (sessionId && transports.has(sessionId)) {
@@ -521,7 +533,7 @@ async function main() {
         console.log("🌐 Available MCP HTTP endpoints:");
         for (const [key] of servers) {
             const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
-            const encodedEndpoint = (endpoint);
+            const encodedEndpoint = endpoint;
             console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
         }
     });
