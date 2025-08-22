@@ -126,14 +126,6 @@ TypeScript 版本支持 JSON 配置文件，默认为`settings.json`。配置文
     "time": {
       "command": "uvx",
       "args": ["mcp-server-time", "--local-timezone=America/New_York"]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/path/to/directory"
-      ]
     }
   }
 }
