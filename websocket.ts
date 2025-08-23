@@ -60,9 +60,15 @@ export class WebSocketClientTransport implements Transport {
       };
 
       this._socket.onmessage = (event: WebSocket.MessageEvent) => {
-        if (typeof event.data !== "string") {
-          throw new Error("WebSocket message must be a string");
+        try {
+          if (typeof event.data !== "string") {
+            throw new Error("WebSocket message must be a string");
+          }
+        } catch (error) {
+          this.onerror?.(error as Error);
+          return;
         }
+
         let message: JSONRPCMessage;
         try {
           message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
