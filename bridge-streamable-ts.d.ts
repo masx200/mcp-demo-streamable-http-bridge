@@ -6,40 +6,37 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { WebSocketClientTransport } from "./websocket.js";
 export interface McpServerConfig {
-  headers?: Record<string, string>;
-  type?: string;
-  transport?: string;
-  url?: string;
-  httpUrl?: string;
-  sseUrl?: string;
-  wsUrl?: string;
-  command?: string;
-  args?: string[];
-  cwd?: string;
-  env?: Record<string, string>;
+    protocols?: string | string[];
+    headers?: Record<string, string>;
+    type?: string;
+    transport?: string;
+    url?: string;
+    httpUrl?: string;
+    sseUrl?: string;
+    wsUrl?: string;
+    command?: string;
+    args?: string[];
+    cwd?: string;
+    env?: Record<string, string>;
 }
 export interface Config {
-  config?: string | undefined;
-  pathPrefix?: string;
-  hotReload?: boolean;
-  version?: boolean;
-  apiKey?: string;
-  port?: number;
-  host?: string;
-  corsAllowOrigins?: string[];
-  mcpServers?: {
-    [key: string]: McpServerConfig;
-  };
+    config?: string | undefined;
+    pathPrefix?: string;
+    hotReload?: boolean;
+    version?: boolean;
+    apiKey?: string;
+    port?: number;
+    host?: string;
+    corsAllowOrigins?: string[];
+    mcpServers?: {
+        [key: string]: McpServerConfig;
+    };
 }
 export interface ServerInstance {
-  server?: McpServer;
-  client?: Client;
-  transport?:
-    | StdioClientTransport
-    | SSEClientTransport
-    | StreamableHTTPClientTransport
-    | WebSocketClientTransport;
-  httpTransport?: StreamableHTTPServerTransport;
-  config: McpServerConfig;
+    server?: McpServer;
+    client?: Client;
+    transport?: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport | WebSocketClientTransport;
+    httpTransport?: StreamableHTTPServerTransport;
+    config: McpServerConfig;
 }
 //# sourceMappingURL=bridge-streamable-ts.d.ts.map
