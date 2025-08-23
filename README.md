@@ -388,6 +388,163 @@ node bridge-streamable.js node index-stdio.js
 }
 ```
 
+## 支持的传输协议
+
+TypeScript 版本的桥接服务器通过 `selectTransport`
+函数支持多种传输协议，可以根据不同的配置自动选择合适的传输方式。以下是支持的传输协议及其配置方法：
+
+### 1. Stdio 传输协议
+
+**适用场景**: 本地进程间通信，通过标准输入输出进行数据交换。
+
+**配置参数**:
+
+- `command`: 启动命令（必需）
+- `args`: 命令参数数组（可选）
+- `cwd`: 工作目录（可选，默认为当前目录或 `BRIDGE_API_PWD` 环境变量）
+- `env`: 环境变量对象（可选）
+- `type` 或 `transport`: 设置为 `"stdio"`（可选）
+
+**配置示例**:
+
+```json
+{
+  "mcpServers": {
+    "memory-server": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "cwd": "/path/to/workdir",
+      "env": {
+        "MEMORY_FILE_PATH": "/path/to/custom/memory.json"
+      },
+      "transport": "stdio"
+    }
+  }
+}
+```
+
+### 2. SSE (Server-Sent Events) 传输协议
+
+**适用场景**: 服务器向客户端推送实时数据，支持单向通信。
+
+**配置参数**:
+
+- `sseUrl`: SSE 服务端点 URL（必需，可通过 `url` 参数替代）
+- `headers`: 请求头对象（可选）
+- `type` 或 `transport`: 设置为 `"sse"`（可选）
+
+**配置示例**:
+
+```json
+{
+  "mcpServers": {
+    "sse-server": {
+      "sseUrl": "http://localhost:8080/sse",
+      "headers": {
+        "Authorization": "Bearer your-token",
+        "Content-Type": "application/json"
+      },
+      "transport": "sse"
+    }
+  }
+}
+```
+
+### 3. WebSocket 传输协议
+
+**适用场景**: 需要双向实时通信的场景，支持全双工通信。
+
+**配置参数**:
+
+- `wsUrl`: WebSocket 服务端点 URL（必需，可通过 `url` 参数替代）
+- `headers`: 请求头对象（可选）
+- `type` 或 `transport`: 设置为 `"ws"`（可选）
+
+**配置示例**:
+
+```json
+{
+  "mcpServers": {
+    "websocket-server": {
+      "wsUrl": "ws://localhost:8080/ws",
+      "headers": {
+        "Authorization": "Bearer your-token",
+        "User-Agent": "mcp-client/1.0"
+      },
+      "transport": "ws"
+    }
+  }
+}
+```
+
+### 4. HTTP/Streamable-HTTP 传输协议
+
+**适用场景**: 基于 HTTP 的请求-响应模式，支持 RESTful 风格的 API 调用。
+
+**配置参数**:
+
+- `httpUrl`: HTTP 服务端点 URL（可通过 `url` 参数替代）
+- `headers`: 请求头对象（可选）
+- `type` 或 `transport`: 设置为 `"http"`（可选）
+
+**配置示例**:
+
+```json
+{
+  "mcpServers": {
+    "http-server": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token",
+        "Content-Type": "application/json"
+      },
+      "transport": "http"
+    }
+  }
+}
+```
+
+### 传输协议选择逻辑
+
+`selectTransport` 函数按照以下优先级自动选择传输协议：
+
+1. **Stdio 协议**: 当配置了 `command` 参数或 `transport/type` 为 `"stdio"` 时
+2. **SSE 协议**: 当配置了 `sseUrl` 或 `url` 且 `transport/type` 为 `"sse"` 时
+3. **WebSocket 协议**: 当配置了 `wsUrl` 或 `url` 且 `transport/type` 为 `"ws"`
+   时
+4. **HTTP 协议**: 当配置了 `httpUrl` 或 `url` 且 `transport/type` 为 `"http"` 时
+
+### 混合配置示例
+
+支持同时配置多种传输协议的服务器：
+
+```json
+{
+  "mcpServers": {
+    "local-memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "transport": "stdio"
+    },
+    "remote-sse": {
+      "sseUrl": "http://remote-server.com/sse",
+      "headers": {
+        "Authorization": "Bearer remote-token"
+      },
+      "transport": "sse"
+    },
+    "websocket-service": {
+      "wsUrl": "ws://websocket-server.com/ws",
+      "transport": "ws"
+    },
+    "http-api": {
+      "url": "http://api-server.com/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
 ## 支持的 MCP 功能
 
 桥接服务器完整支持 MCP 协议的所有核心功能，包括 Tools、Prompts 和 Resources
