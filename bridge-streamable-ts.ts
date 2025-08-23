@@ -1,9 +1,9 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { WebSocketClientTransport } from "@modelcontextprotocol/sdk/client/webSocket.js";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
@@ -17,12 +17,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
-import morgan from "morgan";
 import fs from "fs";
+import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import type { WebSocketClientTransport } from "./websocket.js";
 export interface McpServerConfig {
   headers?: Record<string, string>;
   type?: string;
