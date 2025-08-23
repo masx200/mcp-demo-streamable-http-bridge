@@ -21,7 +21,9 @@ export class WebSocketClientTransport implements Transport {
 
   constructor(
     public url: URL,
-    public options?: WebSocket.ClientOptions | ClientRequestArgs
+    public options?: (WebSocket.ClientOptions | ClientRequestArgs) & {
+      protocols?: string | string[];
+    }
   ) {
     this._url = url;
   }
@@ -34,7 +36,11 @@ export class WebSocketClientTransport implements Transport {
     }
 
     return new Promise((resolve, reject) => {
-      this._socket = new WebSocket(this._url, SUBPROTOCOL, this.options);
+      this._socket = new WebSocket(
+        this._url,
+        this.options?.protocols ?? SUBPROTOCOL,
+        this.options
+      );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
         const error =
