@@ -1,6 +1,9 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { WebSocketClientTransport } from "@modelcontextprotocol/sdk/client/webSocket.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
@@ -26,6 +29,8 @@ export interface McpServerConfig {
   transport?: string;
   url?: string;
   httpUrl?: string;
+  sseUrl?: string;
+  wsUrl?: string;
   command?: string;
   args?: string[];
   cwd?: string;
@@ -49,7 +54,11 @@ export interface Config {
 export interface ServerInstance {
   server?: McpServer;
   client?: Client;
-  transport?: StdioClientTransport;
+  transport?:
+    | StdioClientTransport
+    | SSEClientTransport
+    | StreamableHTTPClientTransport
+    | WebSocketClientTransport;
   httpTransport?: StreamableHTTPServerTransport;
 
   config: McpServerConfig;
@@ -141,45 +150,38 @@ function loadConfigFile(filePath: string): Config {
 function mergeConfigs(
   cliConfig: Config,
   fileConfig: Config,
-  envConfig: Partial<Config>
+  envConfig: Partial<Config>,
 ): Config {
   return {
     ...DEFAULT_CONFIG,
     ...fileConfig,
     ...cliConfig,
     ...envConfig,
-    port:
-      envConfig.port ||
+    port: envConfig.port ||
       cliConfig.port ||
       fileConfig.port ||
       DEFAULT_CONFIG.port,
-    host:
-      envConfig.host ||
+    host: envConfig.host ||
       cliConfig.host ||
       fileConfig.host ||
       DEFAULT_CONFIG.host,
-    hotReload:
-      envConfig.hotReload ||
+    hotReload: envConfig.hotReload ||
       cliConfig.hotReload ||
       fileConfig.hotReload ||
       DEFAULT_CONFIG.hotReload,
-    pathPrefix:
-      envConfig.pathPrefix ||
+    pathPrefix: envConfig.pathPrefix ||
       cliConfig.pathPrefix ||
       fileConfig.pathPrefix ||
       DEFAULT_CONFIG.pathPrefix,
-    corsAllowOrigins:
-      envConfig.corsAllowOrigins ||
+    corsAllowOrigins: envConfig.corsAllowOrigins ||
       cliConfig.corsAllowOrigins ||
       fileConfig.corsAllowOrigins ||
       DEFAULT_CONFIG.corsAllowOrigins,
-    config:
-      envConfig.config ||
+    config: envConfig.config ||
       cliConfig.config ||
       fileConfig.config ||
       DEFAULT_CONFIG.config,
-    version:
-      envConfig.version ||
+    version: envConfig.version ||
       cliConfig.version ||
       fileConfig.version ||
       DEFAULT_CONFIG.version,
@@ -199,7 +201,7 @@ function loadEnvConfig(): Partial<Config> {
 
 // 获取服务器能力
 async function getServerCapabilities(
-  client: Client
+  client: Client,
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -216,7 +218,7 @@ async function getServerCapabilities(
 // 创建MCP服务器实例
 async function createMcpServer(
   serverName: string,
-  serverConfig: McpServerConfig
+  serverConfig: McpServerConfig,
 ): Promise<ServerInstance> {
   if (!serverConfig.command) {
     throw new Error("command is required for mcp server");
@@ -238,7 +240,7 @@ async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
 
   await client.connect(stdioTransport);
@@ -269,7 +271,7 @@ async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4)
+      JSON.stringify(tools, null, 4),
     );
     listOutputs.tools = tools;
   } catch (error) {
@@ -282,7 +284,7 @@ async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4)
+      JSON.stringify(prompts, null, 4),
     );
     listOutputs.prompts = prompts;
   } catch (error) {
@@ -295,7 +297,7 @@ async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4)
+      JSON.stringify(Resources, null, 4),
     );
     listOutputs.resources = Resources;
   } catch (error) {
@@ -310,7 +312,7 @@ async function createMcpServer(
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -327,7 +329,7 @@ async function createMcpServer(
     },
     {
       capabilities: capabilities,
-    }
+    },
   );
 
   // 注册工具
@@ -345,14 +347,14 @@ async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            ? //@ts-ignore
-              JSONSchemaToZod.convert(tool.outputSchema).shape
+            //@ts-ignore
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -368,16 +370,16 @@ async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -398,11 +400,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -417,11 +419,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           return result;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -430,10 +432,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resources;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -442,10 +444,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resourceTemplates;
-        }
+        },
       );
     }
   } catch (error) {
@@ -536,7 +538,7 @@ async function reloadConfiguration() {
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction
+  next: express.NextFunction,
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -621,7 +623,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    })
+    }),
   );
 
   app.use(express.json());
@@ -634,7 +636,7 @@ async function main() {
     console.log(
       "registering pathPrefix",
       pathPrefix + "/" + key,
-      pathPrefix + "/" + encodeURIComponent(key)
+      pathPrefix + "/" + encodeURIComponent(key),
     );
     app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
       const sessionId = req.headers["mcp-session-id"] as string;
@@ -726,7 +728,7 @@ async function main() {
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
     );
 
     if (config.apiKey) {
@@ -738,9 +740,11 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
-        ", "
-      )}`
+      `📦 Configured MCP servers: ${
+        Object.keys(config.mcpServers || {}).join(
+          ", ",
+        )
+      }`,
     );
 
     // 打印所有MCP HTTP端点

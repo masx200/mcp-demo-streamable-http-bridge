@@ -1,6 +1,9 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { WebSocketClientTransport } from "@modelcontextprotocol/sdk/client/webSocket.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
@@ -158,6 +161,9 @@ async function getServerCapabilities(client) {
 }
 // 创建MCP服务器实例
 async function createMcpServer(serverName, serverConfig) {
+  if (!serverConfig.command) {
+    throw new Error("command is required for mcp server");
+  }
   const stdioTransport = new StdioClientTransport({
     command: serverConfig.command,
     args: serverConfig.args,
@@ -546,12 +552,14 @@ async function main() {
         const serverName = key;
         const serverConfig = value.config;
         // 初始化MCP服务器,懒加载实现
-        console.log("Initializing MCP server", serverName, serverConfig);
         if (!serverInstance?.server) {
+          console.log("Initializing MCP server", serverName, serverConfig);
           const instance = await createMcpServer(serverName, serverConfig);
           serverInstance.server = instance.server;
           serverInstance.client = instance.client;
           serverInstance.transport = instance.transport;
+        } else {
+          console.log("Initializing MCP server", serverName, serverConfig);
         }
         // 连接到MCP服务器
         //@ts-ignore
