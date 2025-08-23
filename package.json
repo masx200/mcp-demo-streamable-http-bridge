@@ -2,7 +2,7 @@
   "packageManager": "yarn@4.9.2",
   "type": "module",
   "name": "@masx200/mcp-streamable-http-bridge",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "scripts": {
     "watch": "npx tsc  -p tsconfig.json --watch",
     "build": "npx tsc  -p tsconfig.json",
