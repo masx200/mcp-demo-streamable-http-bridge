@@ -8,6 +8,7 @@
     "build": "npx tsc  -p tsconfig.json",
     "start:bridge": "node bridge-streamable.js",
     "start:bridge-ts": "yarn run build:ts && node bridge-streamable-ts.js",
+    "start": "yarn run build:ts && node bridge-streamable-ts.js",
     "build:ts": "npx tsc  -p tsconfig.json",
     "dev:ts": "npx ts-node bridge-streamable-ts.ts"
   },
