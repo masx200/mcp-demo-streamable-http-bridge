@@ -559,7 +559,7 @@ async function main() {
             const sseEndpoint = config.sseServer.endpoint || "/sse";
             const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
             for (const [key] of servers) {
-                console.log(`SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, "\n", `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
+                console.log(key, `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, "\n", key, `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
             }
         }
     });

@@ -46,6 +46,10 @@ export function mergeConfigs(
       cliConfig.version ||
       fileConfig.version ||
       DEFAULT_CONFIG.version,
+    apiKey: envConfig.apiKey ||
+      cliConfig.apiKey ||
+      fileConfig.apiKey ||
+      DEFAULT_CONFIG.apiKey,
     mcpServers: mergedMcpServers,
     sseServer: Object.assign({}, cliSseConfig, fileConfig.sseServer),
   } satisfies Config;

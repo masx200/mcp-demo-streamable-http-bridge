@@ -790,12 +790,14 @@ async function main() {
       const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
       for (const [key] of servers) {
         console.log(
+          key,
           `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${
             encodeURIComponent(
               key,
             )
           }`,
           "\n",
+          key,
           `Message Endpoint: http://${host}:${port}${messageEndpoint}/${
             encodeURIComponent(
               key,

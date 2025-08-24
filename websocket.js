@@ -1,79 +1,75 @@
-import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
 /**
  * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
  */
 export class WebSocketClientTransport {
-  url;
-  options;
-  _socket;
-  _url;
-  onclose;
-  onerror;
-  onmessage;
-  constructor(url, options) {
-    this.url = url;
-    this.options = options;
-    this._url = url;
-  }
-  start() {
-    if (this._socket) {
-      throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
-      );
+    url;
+    options;
+    _socket;
+    _url;
+    onclose;
+    onerror;
+    onmessage;
+    constructor(url, options) {
+        this.url = url;
+        this.options = options;
+        this._url = url;
     }
-    return new Promise((resolve, reject) => {
-      this._socket = new WebSocket(
-        this._url,
-        this.options?.protocols ?? SUBPROTOCOL,
-        this.options,
-      );
-      this._socket.onerror = (event) => {
-        const error = "error" in event
-          ? event.error
-          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
-        reject(error);
-        this.onerror?.(error);
-      };
-      this._socket.onopen = () => {
-        resolve();
-      };
-      this._socket.onclose = () => {
-        this.onclose?.();
-      };
-      this._socket.onmessage = (event) => {
-        try {
-          if (typeof event.data !== "string") {
-            throw new Error("WebSocket message must be a string");
-          }
-        } catch (error) {
-          this.onerror?.(error);
-          return;
+    start() {
+        if (this._socket) {
+            throw new Error("WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.");
         }
-        let message;
-        try {
-          message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
-        } catch (error) {
-          this.onerror?.(error);
-          return;
-        }
-        this.onmessage?.(message);
-      };
-    });
-  }
-  async close() {
-    this._socket?.close();
-  }
-  send(message) {
-    return new Promise((resolve, reject) => {
-      if (!this._socket) {
-        reject(new Error("Not connected"));
-        return;
-      }
-      this._socket?.send(JSON.stringify(message));
-      resolve();
-    });
-  }
+        return new Promise((resolve, reject) => {
+            this._socket = new WebSocket(this._url, this.options?.protocols ?? SUBPROTOCOL, this.options);
+            this._socket.onerror = (event) => {
+                const error = "error" in event
+                    ? event.error
+                    : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+                reject(error);
+                this.onerror?.(error);
+            };
+            this._socket.onopen = () => {
+                resolve();
+            };
+            this._socket.onclose = () => {
+                this.onclose?.();
+            };
+            this._socket.onmessage = (event) => {
+                try {
+                    if (typeof event.data !== "string") {
+                        throw new Error("WebSocket message must be a string");
+                    }
+                }
+                catch (error) {
+                    this.onerror?.(error);
+                    return;
+                }
+                let message;
+                try {
+                    message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
+                }
+                catch (error) {
+                    this.onerror?.(error);
+                    return;
+                }
+                this.onmessage?.(message);
+            };
+        });
+    }
+    async close() {
+        this._socket?.close();
+    }
+    send(message) {
+        return new Promise((resolve, reject) => {
+            if (!this._socket) {
+                reject(new Error("Not connected"));
+                return;
+            }
+            this._socket?.send(JSON.stringify(message));
+            resolve();
+        });
+    }
 }
 //# sourceMappingURL=websocket.js.map
