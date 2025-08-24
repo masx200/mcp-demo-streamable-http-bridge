@@ -81,6 +81,9 @@ node bridge-streamable-ts.js [选项]
   --host <主机>         设置绑定主机（默认：localhost）
   --cors-allow-origins <域名>  设置CORS允许的源（可多次使用）
   --path-prefix <路径>  设置URL路径前缀（默认：/mcp）
+  --sse-server-enabled  启用SSE服务器模式
+  --sse-endpoint <路径>  SSE服务器端点路径（默认：/sse）
+  --sse-message-endpoint <路径>  SSE服务器消息端点路径（默认：/messages）
   -h, --help            显示帮助信息
 ```
 
@@ -425,6 +428,8 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
 
 ### 2. SSE (Server-Sent Events) 传输协议
 
+#### SSE 客户端模式
+
 **适用场景**: 服务器向客户端推送实时数据，支持单向通信。
 
 **配置参数**:
@@ -438,7 +443,7 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
 ```json
 {
   "mcpServers": {
-    "sse-server": {
+    "sse-client": {
       "sseUrl": "http://localhost:8080/sse",
       "headers": {
         "Authorization": "Bearer your-token",
@@ -448,6 +453,55 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
     }
   }
 }
+```
+
+#### SSE 服务器端模式
+
+**适用场景**:
+
+- 需要将 MCP 服务器作为 SSE 服务器运行
+- 为客户端提供 SSE 连接端点
+- 支持实时双向通信
+
+**配置参数**:
+
+- `sseServer.enabled`: 启用 SSE 服务器模式
+- `sseServer.endpoint`: SSE 端点路径（默认：`/sse`）
+- `sseServer.messageEndpoint`: SSE 消息端点路径（默认：`/messages`）
+
+**示例配置**:
+
+```json
+{
+  "sseServer": {
+    "sseServer": {
+      "enabled": true,
+      "endpoint": "/sse",
+      "messageEndpoint": "/messages"
+    }
+  },
+  "mcpServers": {}
+}
+```
+
+**使用方式**:
+
+1. 启动服务器：
+
+```bash
+npm run start -- --sse-server-enabled
+```
+
+2. 访问 SSE 端点：
+
+```
+GET http://localhost:3000/sse/sse-server/
+```
+
+3. 发送消息到 SSE 服务器：
+
+```
+POST http://localhost:3000/messages/sse-server/?sessionId=<session-id>
 ```
 
 ### 3. WebSocket 传输协议
@@ -509,9 +563,8 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
 `selectTransport` 函数按照以下优先级自动选择传输协议：
 
 1. **Stdio 协议**: 当配置了 `command` 参数或 `transport/type` 为 `"stdio"` 时
-2. **SSE 协议**: 当配置了 `sseUrl` 或 `url` 且 `transport/type` 为 `"sse"` 时
-3. **WebSocket 协议**: 当配置了 `wsUrl` 或 `url` 且 `transport/type` 为 `"ws"`
-   时
+2. **SSE 客户端协议**: 当配置了 `sseUrl` 或 `url` 且 `transport/type` 为 `"sse"` 时
+3. **WebSocket 协议**: 当配置了 `wsUrl` 或 `url` 且 `transport/type` 为 `"ws"` 时
 4. **HTTP 协议**: 当配置了 `httpUrl` 或 `url` 且 `transport/type` 为 `"http"` 时
 
 ### 混合配置示例
@@ -520,6 +573,13 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
 
 ```json
 {
+  "sseServer": {
+    "sseServer": {
+      "enabled": true,
+      "endpoint": "/sse",
+      "messageEndpoint": "/messages"
+    }
+  },
   "mcpServers": {
     "local-memory": {
       "command": "npx",
@@ -533,6 +593,7 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
       },
       "transport": "sse"
     },
+
     "websocket-service": {
       "wsUrl": "ws://websocket-server.com/ws",
       "transport": "ws"

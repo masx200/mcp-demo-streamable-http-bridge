@@ -5,6 +5,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   GetPromptRequestSchema,
@@ -21,8 +22,6 @@ import fs, { type StatWatcher } from "fs";
 import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
 import { WebSocketClientTransport } from "./websocket.js";
 export interface McpServerConfig {
   protocols?: string | string[];
@@ -41,6 +40,11 @@ export interface McpServerConfig {
 
 // 配置接口定义
 export interface Config {
+  sseServer?: {
+    enabled?: boolean;
+    endpoint?: string;
+    messageEndpoint?: string;
+  };
   config?: string | undefined;
   pathPrefix?: string;
   hotReload?: boolean;
@@ -62,12 +66,13 @@ export interface ServerInstance {
     | StreamableHTTPClientTransport
     | WebSocketClientTransport;
   httpTransport?: StreamableHTTPServerTransport;
+  sseTransport?: SSEServerTransport;
 
   config: McpServerConfig;
 }
 
 // 默认配置
-const DEFAULT_CONFIG: Config = {
+export const DEFAULT_CONFIG: Config = {
   pathPrefix: "/mcp",
   hotReload: false,
   version: false,
@@ -82,112 +87,18 @@ const DEFAULT_CONFIG: Config = {
 let config: Config = { ...DEFAULT_CONFIG };
 let servers: Map<string, ServerInstance> = new Map();
 let configFilePath: string = "settings.json";
-let configWatcher: StatWatcher|null = null;
-
-// 解析命令行参数
-function parseCommandLineArgs(): Config {
-  const argv = yargs(hideBin(process.argv))
-    .version(false)
-    .option("hot-reload", {
-      type: "boolean",
-      description: "Enable hot reload for configuration changes",
-    })
-    .option("version", {
-      type: "boolean",
-      description: "Show version information",
-    })
-    .option("config", {
-      type: "string",
-      description: "Path to configuration file",
-    })
-    .option("api-key", {
-      type: "string",
-      description: "API key for authentication",
-    })
-    .option("port", {
-      type: "number",
-      description: "Port to listen on",
-    })
-    .option("host", {
-      type: "string",
-      description: "Host to bind to",
-    })
-    .option("cors-allow-origins", {
-      type: "array",
-      description: "CORS allowed origins",
-    })
-    .option("path-prefix", {
-      type: "string",
-      description: "URL path prefix for MCP endpoints",
-    })
-    .help()
-    .alias("help", "h")
-    .parseSync();
-
-  return {
-    config: argv.config,
-    hotReload: argv.hotReload,
-    version: argv.version,
-    apiKey: argv.apiKey,
-    port: argv.port,
-    host: argv.host,
-    corsAllowOrigins: argv.corsAllowOrigins as string[] | undefined,
-    pathPrefix: argv.pathPrefix,
-  };
-}
+let configWatcher: StatWatcher | null = null;
 
 // 加载配置文件
 function loadConfigFile(filePath: string): Config {
   try {
     const fileContent = readFileSync(filePath, "utf-8");
-    const fileConfig = JSON.parse(fileContent);
+    const fileConfig = JSON.parse(fileContent) as Config;
     return { ...DEFAULT_CONFIG, ...fileConfig };
   } catch (error) {
     console.warn(`Failed to load config file ${filePath}:`, error);
     return DEFAULT_CONFIG;
   }
-}
-
-// 合并配置
-function mergeConfigs(
-  cliConfig: Config,
-  fileConfig: Config,
-  envConfig: Partial<Config>,
-): Config {
-  return {
-    ...DEFAULT_CONFIG,
-    ...fileConfig,
-    ...cliConfig,
-    ...envConfig,
-    port: envConfig.port ||
-      cliConfig.port ||
-      fileConfig.port ||
-      DEFAULT_CONFIG.port,
-    host: envConfig.host ||
-      cliConfig.host ||
-      fileConfig.host ||
-      DEFAULT_CONFIG.host,
-    hotReload: envConfig.hotReload ||
-      cliConfig.hotReload ||
-      fileConfig.hotReload ||
-      DEFAULT_CONFIG.hotReload,
-    pathPrefix: envConfig.pathPrefix ||
-      cliConfig.pathPrefix ||
-      fileConfig.pathPrefix ||
-      DEFAULT_CONFIG.pathPrefix,
-    corsAllowOrigins: envConfig.corsAllowOrigins ||
-      cliConfig.corsAllowOrigins ||
-      fileConfig.corsAllowOrigins ||
-      DEFAULT_CONFIG.corsAllowOrigins,
-    config: envConfig.config ||
-      cliConfig.config ||
-      fileConfig.config ||
-      DEFAULT_CONFIG.config,
-    version: envConfig.version ||
-      cliConfig.version ||
-      fileConfig.version ||
-      DEFAULT_CONFIG.version,
-  };
 }
 
 // 从环境变量加载配置
@@ -201,147 +112,9 @@ function loadEnvConfig(): Partial<Config> {
   };
 }
 
-// 根据McpServerConfig选择合适的transport
-function selectTransport(
-  serverConfig: McpServerConfig,
-):
-  | StdioClientTransport
-  | SSEClientTransport
-  | StreamableHTTPClientTransport
-  | WebSocketClientTransport
-  | null {
-  // 如果配置了command，使用stdio transport
-  if (
-    serverConfig.command ||
-    serverConfig.type == "stdio" ||
-    serverConfig.transport == "stdio"
-  ) {
-    if (!serverConfig.command) {
-      throw new Error("command is required for stdio transport");
-    }
-    return new StdioClientTransport({
-      command: serverConfig.command,
-      args: serverConfig.args,
-      cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
-      env: Object.assign({}, serverConfig.env, process.env) as
-        | Record<string, string>
-        | undefined,
-    });
-  }
-  if (
-    serverConfig.url &&
-    (serverConfig.type == "sse" || serverConfig.transport == "sse")
-  ) {
-    return new SSEClientTransport(new URL(serverConfig.url), {
-      requestInit: { headers: serverConfig.headers },
-    });
-  }
-  // 如果配置了sseUrl，使用SSE transport
-  if (
-    serverConfig.sseUrl ||
-    serverConfig.type == "sse" ||
-    serverConfig.transport == "sse"
-  ) {
-    if (!serverConfig.sseUrl) {
-      throw new Error("sseUrl is required for sse transport");
-    }
-    return new SSEClientTransport(new URL(serverConfig.sseUrl), {
-      requestInit: { headers: serverConfig.headers },
-    });
-  }
-  if (
-    serverConfig.url &&
-    (serverConfig.type == "ws" || serverConfig.transport == "ws")
-  ) {
-    return new WebSocketClientTransport(new URL(serverConfig.url), {
-      headers: serverConfig.headers,
-      protocols: serverConfig.protocols,
-    });
-  }
-  // 如果配置了wsUrl，使用WebSocket transport
-  if (
-    serverConfig.wsUrl ||
-    serverConfig.type == "ws" ||
-    serverConfig.transport == "ws"
-  ) {
-    if (!serverConfig.wsUrl) {
-      throw new Error("wsUrl is required for ws transport");
-    }
-    // 注意：WebSocketClientTransport需要从websocket.ts导入
-    // 这里假设WebSocketClientTransport的构造函数接受URL和headers
-    return new WebSocketClientTransport(new URL(serverConfig.wsUrl), {
-      headers: serverConfig.headers,
-      protocols: serverConfig.protocols,
-    });
-  }
-  if (
-    serverConfig.url &&
-    (serverConfig.type == "http" || serverConfig.transport == "http")
-  ) {
-    return new StreamableHTTPClientTransport(new URL(serverConfig.url), {
-      requestInit: { headers: serverConfig.headers },
-    });
-  }
-  // 如果配置了httpUrl或url，使用StreamableHTTP transport
-  const httpUrl = serverConfig.httpUrl || serverConfig.url;
-  if (httpUrl) {
-    return new StreamableHTTPClientTransport(new URL(httpUrl), {
-      requestInit: { headers: serverConfig.headers },
-    });
-  }
-
-  // 如果明确指定了transport类型，根据类型选择
-  if (serverConfig.transport) {
-    switch (serverConfig.transport.toLowerCase()) {
-      case "stdio":
-        if (serverConfig.command) {
-          return new StdioClientTransport({
-            command: serverConfig.command,
-            args: serverConfig.args,
-            cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD ||
-              process.cwd(),
-            env: Object.assign({}, serverConfig.env, process.env) as
-              | Record<string, string>
-              | undefined,
-          });
-        }
-        break;
-
-      case "sse":
-        if (serverConfig.sseUrl) {
-          return new SSEClientTransport(new URL(serverConfig.sseUrl), {
-            requestInit: { headers: serverConfig.headers },
-          });
-        }
-        break;
-
-      case "ws":
-        if (serverConfig.wsUrl) {
-          return new WebSocketClientTransport(new URL(serverConfig.wsUrl), {
-            headers: serverConfig.headers,
-            protocols: serverConfig.protocols,
-          });
-        }
-        break;
-
-      case "http":
-        const url = serverConfig.httpUrl || serverConfig.url;
-        if (url) {
-          return new StreamableHTTPClientTransport(new URL(url), {
-            requestInit: { headers: serverConfig.headers },
-          });
-        }
-        break;
-    }
-  }
-
-  // 如果没有匹配的配置，返回null
-  return null;
-}
-
 // 获取服务器能力
 async function getServerCapabilities(
-  client: Client,
+  client: Client
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -358,14 +131,14 @@ async function getServerCapabilities(
 // 创建MCP服务器实例
 async function createMcpServer(
   serverName: string,
-  serverConfig: McpServerConfig,
+  serverConfig: McpServerConfig
 ): Promise<ServerInstance> {
   // 使用selectTransport函数选择合适的transport
   const transport = selectTransport(serverConfig);
 
   if (!transport) {
     throw new Error(
-      "Failed to create transport, please check the configuration.",
+      "Failed to create transport, please check the configuration."
     );
   }
 
@@ -377,7 +150,7 @@ async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    },
+    }
   );
 
   await client.connect(transport);
@@ -408,7 +181,7 @@ async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4),
+      JSON.stringify(tools, null, 4)
     );
     listOutputs.tools = tools;
   } catch (error) {
@@ -421,7 +194,7 @@ async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4),
+      JSON.stringify(prompts, null, 4)
     );
     listOutputs.prompts = prompts;
   } catch (error) {
@@ -434,7 +207,7 @@ async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4),
+      JSON.stringify(Resources, null, 4)
     );
     listOutputs.resources = Resources;
   } catch (error) {
@@ -449,7 +222,7 @@ async function createMcpServer(
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4),
+      JSON.stringify(ResourcesTemplates, null, 4)
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -466,7 +239,7 @@ async function createMcpServer(
     },
     {
       capabilities: capabilities,
-    },
+    }
   );
 
   // 注册工具
@@ -484,14 +257,14 @@ async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4,
-            ),
+              4
+            )
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            //@ts-ignore
-            ? JSONSchemaToZod.convert(tool.outputSchema).shape
+            ? //@ts-ignore
+              JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -507,16 +280,16 @@ async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4),
+                JSON.stringify({ name: tool.name, params }, null, 4)
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            },
+            }
           );
-        }),
+        })
       );
     }
   } catch (error) {
@@ -537,11 +310,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           const result = await client.getPrompt(request.params);
           return result;
-        },
+        }
       );
     }
   } catch (error) {
@@ -556,11 +329,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           const result = await client.readResource(request.params);
           return result;
-        },
+        }
       );
 
       server.server.setRequestHandler(
@@ -569,10 +342,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           return listOutputs.resources;
-        },
+        }
       );
 
       server.server.setRequestHandler(
@@ -581,10 +354,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           return listOutputs.resourceTemplates;
-        },
+        }
       );
     }
   } catch (error) {
@@ -629,7 +402,7 @@ async function initializeServers(config: Config) {
       !Object.keys(serverConfig).includes("sseUrl")
     ) {
       throw new Error(
-        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file",
+        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file"
       );
     }
     try {
@@ -686,7 +459,7 @@ async function reloadConfiguration() {
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction,
+  next: express.NextFunction
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -723,6 +496,9 @@ function authenticateToken(
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mergeConfigs } from "./mergeConfigs.js";
+import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
+import { selectTransport } from "./selectTransport.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -732,7 +508,7 @@ const packageJson = await fs.promises.readFile(
   join(__dirname, "./package.json"),
   {
     encoding: "utf-8",
-  },
+  }
 );
 const packageJsonObj = JSON.parse(packageJson);
 // 主函数
@@ -781,20 +557,21 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    }),
+    })
   );
 
   app.use(express.json());
   app.use(authenticateToken);
 
   const transports = new Map<string, StreamableHTTPServerTransport>();
+  const sseTransports = new Map<string, SSEServerTransport>();
   const pathPrefix = config.pathPrefix || "/mcp";
   for (const [key, value] of servers) {
     // 处理MCP请求
     console.log(
       "registering pathPrefix",
       pathPrefix + "/" + key,
-      pathPrefix + "/" + encodeURIComponent(key),
+      pathPrefix + "/" + encodeURIComponent(key)
     );
     app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
       const sessionId = req.headers["mcp-session-id"] as string;
@@ -856,7 +633,7 @@ async function main() {
           console.log(
             "already Initialized  MCP server",
             serverName,
-            serverConfig,
+            serverConfig
           );
         }
 
@@ -877,6 +654,96 @@ async function main() {
 
       await transport.handleRequest(req, res, req.body);
     });
+
+    // 如果启用了SSE服务器，添加SSE相关路由
+    const serverConfig = value.config;
+    if (config.sseServer && config.sseServer.enabled) {
+      const sseEndpoint = config.sseServer.endpoint || "/sse";
+      const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
+
+      // SSE端点
+      app.get(`${sseEndpoint}/${encodeURIComponent(key)}`, async (req, res) => {
+        try {
+          const serverInstance = value;
+          if (!serverInstance) {
+            return res.status(500).json({
+              jsonrpc: "2.0",
+              error: {
+                code: -32003,
+                message: "No MCP servers available",
+              },
+              id: null,
+            });
+          }
+
+          const serverName = key;
+
+          // 初始化MCP服务器（如果尚未初始化）
+          if (!serverInstance?.server) {
+            console.log(
+              "Initializing MCP server for SSE",
+              serverName,
+              serverConfig
+            );
+            const instance = await createMcpServer(serverName, serverConfig);
+            serverInstance.server = instance.server;
+            serverInstance.client = instance.client;
+            serverInstance.transport = instance.transport;
+          }
+
+          // 创建SSE传输
+          const sseTransport = new SSEServerTransport(
+            messageEndpoint + `/${encodeURIComponent(key)}`,
+            res
+          );
+          serverInstance.sseTransport = sseTransport;
+
+          // 存储SSE传输
+          sseTransports.set(sseTransport.sessionId, sseTransport);
+
+          // 设置响应关闭时的清理逻辑
+          res.on("close", () => {
+            if (serverInstance.sseTransport === sseTransport) {
+              serverInstance.sseTransport = undefined;
+            }
+            sseTransports.delete(sseTransport.sessionId);
+            console.log(`SSE session closed: ${sseTransport.sessionId}`);
+          });
+
+          // 连接到MCP服务器
+          //@ts-ignore
+          await serverInstance.server.connect(sseTransport);
+        } catch (error) {
+          console.error(`Error handling SSE connection:`, error);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Internal server error" });
+          }
+        }
+      });
+
+      // SSE消息端点
+      app.post(
+        `${messageEndpoint}/${encodeURIComponent(key)}`,
+        async (req, res) => {
+          try {
+            const sessionId = req.query.sessionId as string;
+            const sseTransport = sseTransports.get(sessionId);
+            if (sseTransport) {
+              await sseTransport.handlePostMessage(req, res, req.body);
+            } else {
+              res
+                .status(400)
+                .json({ error: "No SSE transport found for sessionId" });
+            }
+          } catch (error) {
+            console.error(`Error handling SSE message:`, error);
+            if (!res.headersSent) {
+              res.status(500).json({ error: "Internal server error" });
+            }
+          }
+        }
+      );
+    }
   }
 
   // 启动服务器
@@ -890,7 +757,7 @@ async function main() {
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
     );
 
     if (config.apiKey) {
@@ -902,11 +769,9 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${
-        Object.keys(config.mcpServers || {}).join(
-          ", ",
-        )
-      }`,
+      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
+        ", "
+      )}`
     );
 
     // 打印所有MCP HTTP端点
@@ -915,6 +780,21 @@ async function main() {
       const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
       const encodedEndpoint = endpoint;
       console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+    }
+
+    if (config.sseServer && config.sseServer.enabled) {
+      const sseEndpoint = config.sseServer.endpoint || "/sse";
+      const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
+      for (const [key] of servers) {
+        console.log(
+          `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
+            key
+          )}`,
+          `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
+            key
+          )}`
+        );
+      }
     }
   });
 

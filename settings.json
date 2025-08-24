@@ -1,4 +1,11 @@
 {
+  "sseServer": {
+    "sseServer": {
+      "enabled": true,
+      "endpoint": "/sse",
+      "messageEndpoint": "/messages"
+    }
+  },
   "pathPrefix": "/mcp",
   "hotReload": true,
   "apiKey": "your-secret-api-key",
