@@ -6,7 +6,7 @@ import { WebSocketClientTransport } from "./websocket.js";
 
 // 根据McpServerConfig选择合适的transport
 export function selectTransport(
-  serverConfig: McpServerConfig
+  serverConfig: McpServerConfig,
 ):
   | StdioClientTransport
   | SSEClientTransport
@@ -101,8 +101,8 @@ export function selectTransport(
           return new StdioClientTransport({
             command: serverConfig.command,
             args: serverConfig.args,
-            cwd:
-              serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
+            cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD ||
+              process.cwd(),
             env: Object.assign({}, serverConfig.env, process.env) as
               | Record<string, string>
               | undefined,

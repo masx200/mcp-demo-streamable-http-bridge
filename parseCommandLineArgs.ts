@@ -43,6 +43,18 @@ export function parseCommandLineArgs(): Config {
       type: "boolean",
       description: "Enable SSE server mode",
     })
+    .option("ws-server-enabled", {
+      type: "boolean",
+      description: "Enable WS server mode",
+    })
+    .option("ws-path-prefix", {
+      type: "string",
+      description: "WS server path prefix  (default: /ws)",
+    })
+    .option("http-server-enabled", {
+      type: "boolean",
+      description: "Enable http server mode",
+    })
     .option("sse-endpoint", {
       type: "string",
       description: "SSE server endpoint path (default: /sse)",
@@ -61,7 +73,11 @@ export function parseCommandLineArgs(): Config {
       endpoint: argv.sseEndpoint,
       messageEndpoint: argv.sseMessageEndpoint,
     },
-
+    enableHttpServer: argv.httpServerEnabled,
+    wsServer: {
+      enabled: argv.wsServerEnabled,
+      pathPrefix: argv.wsPathPrefix,
+    },
     config: argv.config,
     hotReload: argv.hotReload,
     version: argv.version,

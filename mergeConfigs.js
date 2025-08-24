@@ -7,11 +7,8 @@ export function mergeConfigs(cliConfig, fileConfig, envConfig) {
         ...envConfig.mcpServers,
     };
     const cliSseConfig = cliConfig?.sseServer;
-    return {
-        ...DEFAULT_CONFIG,
-        ...fileConfig,
-        ...cliConfig,
-        ...envConfig,
+    const cliWsConfig = cliConfig?.wsServer;
+    return Object.assign(DEFAULT_CONFIG, fileConfig, cliConfig, envConfig, {
         port: envConfig.port ||
             cliConfig.port ||
             fileConfig.port ||
@@ -40,12 +37,17 @@ export function mergeConfigs(cliConfig, fileConfig, envConfig) {
             cliConfig.version ||
             fileConfig.version ||
             DEFAULT_CONFIG.version,
+        enableHttpServer: envConfig.enableHttpServer ||
+            cliConfig.enableHttpServer ||
+            fileConfig.enableHttpServer ||
+            DEFAULT_CONFIG.enableHttpServer,
         apiKey: envConfig.apiKey ||
             cliConfig.apiKey ||
             fileConfig.apiKey ||
             DEFAULT_CONFIG.apiKey,
         mcpServers: mergedMcpServers,
+        wsServer: Object.assign({}, cliWsConfig, fileConfig.wsServer),
         sseServer: Object.assign({}, cliSseConfig, fileConfig.sseServer),
-    };
+    });
 }
 //# sourceMappingURL=mergeConfigs.js.map

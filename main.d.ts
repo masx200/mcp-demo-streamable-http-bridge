@@ -7,44 +7,53 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { WebSocketClientTransport } from "./websocket.js";
 export interface McpServerConfig {
-    protocols?: string | string[];
-    headers?: Record<string, string>;
-    type?: string;
-    transport?: string;
-    url?: string;
-    httpUrl?: string;
-    sseUrl?: string;
-    wsUrl?: string;
-    command?: string;
-    args?: string[];
-    cwd?: string;
-    env?: Record<string, string>;
+  protocols?: string | string[];
+  headers?: Record<string, string>;
+  type?: string;
+  transport?: string;
+  url?: string;
+  httpUrl?: string;
+  sseUrl?: string;
+  wsUrl?: string;
+  command?: string;
+  args?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
 }
 export interface Config {
-    sseServer?: {
-        enabled?: boolean;
-        endpoint?: string;
-        messageEndpoint?: string;
-    };
-    config?: string | undefined;
+  sseServer?: {
+    enabled?: boolean;
+    endpoint?: string;
+    messageEndpoint?: string;
+  };
+  wsServer?: {
+    enabled?: boolean;
     pathPrefix?: string;
-    hotReload?: boolean;
-    version?: boolean;
-    apiKey?: string;
-    port?: number;
-    host?: string;
-    corsAllowOrigins?: string[];
-    mcpServers?: {
-        [key: string]: McpServerConfig;
-    };
+  };
+  enableHttpServer?: boolean;
+  config?: string | undefined;
+  pathPrefix?: string;
+  hotReload?: boolean;
+  version?: boolean;
+  apiKey?: string;
+  port?: number;
+  host?: string;
+  corsAllowOrigins?: string[];
+  mcpServers?: {
+    [key: string]: McpServerConfig;
+  };
 }
 export interface ServerInstance {
-    server?: McpServer;
-    client?: Client;
-    transport?: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport | WebSocketClientTransport;
-    httpTransports?: StreamableHTTPServerTransport[];
-    sseTransports?: SSEServerTransport[];
-    config: McpServerConfig;
+  server?: McpServer;
+  client?: Client;
+  transport?:
+    | StdioClientTransport
+    | SSEClientTransport
+    | StreamableHTTPClientTransport
+    | WebSocketClientTransport;
+  httpTransports?: StreamableHTTPServerTransport[];
+  sseTransports?: SSEServerTransport[];
+  config: McpServerConfig;
 }
 export declare const DEFAULT_CONFIG: Config;
 //# sourceMappingURL=main.d.ts.map

@@ -4,7 +4,7 @@
   "name": "@masx200/mcp-streamable-http-bridge",
   "version": "2.2.0",
   "scripts": {
-    "dev":"concurrently --kill-others 'yarn run watch' 'nodemon main.js' ",
+    "dev": "concurrently --kill-others 'yarn run watch' 'nodemon main.js' ",
     "watch": "npx tsc  -p tsconfig.json --watch",
     "build": "npx tsc  -p tsconfig.json",
     "start:bridge": "node bridge-streamable.js",

@@ -4,9 +4,14 @@
     "endpoint": "/sse",
     "messageEndpoint": "/messages"
   },
+  "enableHttpServer": true,
+  "wsServer": {
+    "enabled": true,
+    "pathPrefix": "/ws"
+  },
   "pathPrefix": "/mcp",
   "hotReload": true,
-  "apiKey": "your-secret-api-key",
+  "apiKey": "5515076499727613-your-secret-api-key-8789873300017365",
   "port": 3000,
   "host": "0.0.0.0",
   "corsAllowOrigins": ["*"],
