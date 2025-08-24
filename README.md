@@ -496,11 +496,9 @@ TypeScript 版本的桥接服务器通过 `selectTransport`
 ```json
 {
   "sseServer": {
-    "sseServer": {
-      "enabled": true,
-      "endpoint": "/sse",
-      "messageEndpoint": "/messages"
-    }
+    "enabled": true,
+    "endpoint": "/sse",
+    "messageEndpoint": "/messages"
   },
   "mcpServers": {}
 }
@@ -598,11 +596,9 @@ POST http://localhost:3000/messages/sse-server/?sessionId=<session-id>
 ```json
 {
   "sseServer": {
-    "sseServer": {
-      "enabled": true,
-      "endpoint": "/sse",
-      "messageEndpoint": "/messages"
-    }
+    "enabled": true,
+    "endpoint": "/sse",
+    "messageEndpoint": "/messages"
   },
   "mcpServers": {
     "local-memory": {
