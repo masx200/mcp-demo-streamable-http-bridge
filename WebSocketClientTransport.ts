@@ -75,7 +75,10 @@ export class WebSocketClientTransport implements Transport {
             JSONRPCMessageSchema.parse(JSON.parse(event.data)),
             { sessionId: JSON.parse(event.data).sessionId }
           );
-          if (message?.sessionId !== this.sessionId) {
+          if (
+            message?.sessionId !== undefined &&
+            message?.sessionId !== this.sessionId
+          ) {
             this.sessionId = message.sessionId;
           }
         } catch (error) {

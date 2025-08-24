@@ -1,108 +1,345 @@
-// websocket-transport.ts
-// websocket-transport.ts
 import type {
   Transport,
   TransportSendOptions,
 } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type {
-  JSONRPCMessage,
-  MessageExtraInfo,
+import {
+  JSONRPCMessageSchema,
+  type JSONRPCMessage,
+  type MessageExtraInfo,
+  type RequestInfo,
 } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket, WebSocketServer } from "ws";
-import { EventEmitter } from "events";
-import type { WebSocketServerTransportOptions } from "./WebSocketServerTransportOptions.js";
-import { v4 as uuid } from "uuid";
-export class WebSocketServerTransport
-  extends EventEmitter
-  implements Transport
-{
-  private clients: Map<string, WebSocket> = new Map();
-  private wss?: WebSocketServer;
-  private socket?: WebSocket;
-  sessionId = uuid();
+
+import { randomUUID } from "node:crypto";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { ServerOptions } from "ws";
+/**
+ * Configuration options for WebSocketServerTransport
+ */
+export interface WebSocketServerTransportOptions extends ServerOptions {
+  /**
+   * Function that generates a session ID for the transport.
+   * The session ID SHOULD be globally unique and cryptographically secure (e.g., a securely generated UUID, a JWT, or a cryptographic hash)
+   *
+   * Return undefined to disable session management.
+   */
+  sessionIdGenerator?: (() => string) | undefined;
+
+  /**
+   * A callback for session initialization events
+   * This is called when the server initializes a new session.
+   * Useful in cases when you need to register multiple mcp sessions
+   * and need to keep track of them.
+   * @param sessionId The generated session ID
+   */
+  onsessioninitialized?: (sessionId: string) => void | Promise<void>;
+
+  /**
+   * A callback for session close events
+   * This is called when the server closes a session.
+   * Useful in cases when you need to clean up resources associated with the session.
+   * @param sessionId The session ID that was closed
+   */
+  onsessionclosed?: (sessionId: string) => void | Promise<void>;
+
+  /**
+   * 监听端口，默认 3000
+   */
+  port?: number;
+
+  /**
+   * 监听 host，默认 'localhost'
+   */
+  host?: string;
+
+  /**
+   * 连接建立后的额外回调
+   */
+  onConnection?: (socket: WebSocket) => void;
+
+  /**
+   * List of allowed origin header values for DNS rebinding protection.
+   * If not specified, origin validation is disabled.
+   */
+  allowedOrigins?: string[];
+
+  /**
+   * Enable DNS rebinding protection (requires allowedOrigins to be configured).
+   * Default is false for backwards compatibility.
+   */
+  enableDnsRebindingProtection?: boolean;
+}
+
+/**
+ * Server transport for WebSocket: this implements the MCP WebSocket transport specification.
+ * It supports session management and follows the same patterns as StreamableHTTPServerTransport.
+ *
+ * Usage example:
+ *
+ * ```typescript
+ * // Stateful mode - server sets the session ID
+ * const statefulTransport = new WebSocketServerTransport({
+ *   sessionIdGenerator: () => randomUUID(),
+ *   port: 8080
+ * });
+ *
+ * // Stateless mode - explicitly set session ID to undefined
+ * const statelessTransport = new WebSocketServerTransport({
+ *   sessionIdGenerator: undefined,
+ *   port: 8080
+ * });
+ * ```
+ *
+ * In stateful mode:
+ * - Session ID is generated and managed
+ * - Session validation is performed
+ * - State is maintained in-memory (connections, message history)
+ *
+ * In stateless mode:
+ * - No session ID is generated
+ * - No session validation is performed
+ */
+export class WebSocketServerTransport implements Transport {
+  // when sessionId is not set (undefined), it means the transport is in stateless mode
+  private sessionIdGenerator: (() => string) | undefined;
+  private _started: boolean = false;
+  private _clients: Map<string, WebSocket> = new Map();
+  private _requestToClientMapping: Map<string, string> = new Map();
+  private _initialized: boolean = false;
+  private _wss?: WebSocketServer;
+  private _onsessioninitialized?: (sessionId: string) => void | Promise<void>;
+  private _onsessionclosed?: (sessionId: string) => void | Promise<void>;
+  private _allowedOrigins?: string[];
+  private _enableDnsRebindingProtection: boolean;
+  private _onConnection?: (socket: WebSocket) => void;
+
+  sessionId?: string;
   onclose?: () => void;
   onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo) => void;
+  //@ts-ignore
+  onmessage?: (
+    message: JSONRPCMessage & { sessionId: string },
+    extra?: MessageExtraInfo
+  ) => void;
   setProtocolVersion?: (version: string) => void;
-  onConnection: ((socket: WebSocket) => void) | undefined;
-  constructor(public readonly options: WebSocketServerTransportOptions = {}) {
-    super();
+
+  constructor(public options: WebSocketServerTransportOptions = {}) {
     const { port = 3000, host = "localhost", onConnection } = options;
-    this.wss = new WebSocketServer({ port, host, ...options });
-    this.onConnection = onConnection;
+    this.sessionIdGenerator =
+      options.sessionIdGenerator ?? (() => randomUUID());
+    this._onsessioninitialized = options.onsessioninitialized;
+    this._onsessionclosed = options.onsessionclosed;
+    this._allowedOrigins = options.allowedOrigins;
+    this._enableDnsRebindingProtection =
+      options.enableDnsRebindingProtection ?? false;
+    this._onConnection = onConnection;
+
+    this._wss = new WebSocketServer({ port, host, ...options });
   }
-  onconnection?: (clientId: string) => void;
-  /* ---------- Transport 接口实现 ---------- */
-  ondisconnection?: (clientId: string) => void;
+
+  /**
+   * Starts the transport. This is required by the Transport interface.
+   */
   async start(): Promise<void> {
-    this.wss!.on("connection", (ws) => {
-      // 只允许单个连接；如有需要可扩展为多连接会话
-      this.socket = ws;
-      const clientId = uuid();
-      this.clients.set(clientId, ws);
-      this.onconnection?.(clientId);
+    if (this._started) {
+      throw new Error("Transport already started");
+    }
+
+    this._wss!.on("connection", (ws, req) => {
+      // Validate request headers for DNS rebinding protection
+      const validationError = this.validateWebSocketRequest(req);
+      if (validationError) {
+        ws.close(1008, validationError);
+        this.onerror?.(new Error(validationError));
+        return;
+      }
+
+      const clientId = randomUUID();
+      this._clients.set(clientId, ws);
+
+      // Initialize session if this is the first connection
+      if (!this._initialized && this.sessionIdGenerator) {
+        this.sessionId = this.sessionIdGenerator();
+        this._initialized = true;
+
+        // If we have a session ID and an onsessioninitialized handler, call it immediately
+        if (this.sessionId && this._onsessioninitialized) {
+          Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
+            (error) => {
+              this.onerror?.(error);
+            }
+          );
+        }
+      }
+
       // 透传上层回调
-      this.onConnection?.(ws);
+      this._onConnection?.(ws);
 
       // 收到消息 -> 解析 -> 调用onmessage回调
       ws.on("message", (data) => {
-        let msg: JSONRPCMessage;
+        let msg: JSONRPCMessage & { sessionId: string };
+
         try {
-          msg = JSON.parse(data.toString());
+          msg = Object.assign(
+            JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
+            { sessionId: JSON.parse(data.toString()).sessionId }
+          );
         } catch (err) {
           this.onerror?.(new Error(`Failed to parse message: ${err}`));
           return; // 非法 JSON 直接忽略
         }
-        this.onmessage?.(Object.assign(msg, { sessionId: clientId }));
+
+        const authInfo: AuthInfo | undefined = undefined;
+        const requestInfo: RequestInfo = { headers: req.headers };
+
+        this.onmessage?.(msg, { authInfo, requestInfo });
       });
 
       ws.on("close", () => {
-        this.ondisconnection?.(clientId);
-        this.clients.delete(clientId);
-        this.onclose?.();
+        this._clients.delete(clientId);
+        // Clean up request mappings
+        for (const [
+          requestId,
+          mappedClientId,
+        ] of this._requestToClientMapping.entries()) {
+          if (mappedClientId === clientId) {
+            this._requestToClientMapping.delete(requestId);
+          }
+        }
       });
+
       ws.on("error", (err) => {
         this.onerror?.(err);
-        this.emit("error", err);
       });
     });
+
+    this._started = true;
   }
 
+  /**
+   * Validates WebSocket request headers for DNS rebinding protection.
+   * @returns Error message if validation fails, undefined if validation passes.
+   */
+  private validateWebSocketRequest(req: any): string | undefined {
+    // Skip validation if protection is not enabled
+    if (!this._enableDnsRebindingProtection) {
+      return undefined;
+    }
+
+    // Validate Origin header if allowedOrigins is configured
+    if (this._allowedOrigins && this._allowedOrigins.length > 0) {
+      const originHeader = req.headers.origin;
+      if (!originHeader || !this._allowedOrigins.includes(originHeader)) {
+        return `Invalid Origin header: ${originHeader}`;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Sends a message through the WebSocket transport
+   */
   async send(
-    message: JSONRPCMessage,
+    message: JSONRPCMessage & { sessionId: string },
     options?: TransportSendOptions
   ): Promise<void> {
     const clientId = options?.relatedRequestId;
 
     if (clientId) {
-      const client = this.clients.get(String(clientId));
-      if (client) {
-        if (client?.readyState === WebSocket.OPEN) {
-          client.send(
-            JSON.stringify(Object.assign(message, { sessionId: clientId }))
+      // Send to specific client
+      const client = this._clients.get(String(clientId));
+      if (client && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+        // Track request-to-client mapping for response routing
+        if ("sessionId" in message && message.sessionId !== undefined) {
+          this._requestToClientMapping.set(
+            String(message.sessionId),
+            String(clientId)
           );
-        } else {
-          this.clients.delete(String(clientId));
-          this.ondisconnection?.(String(clientId));
         }
+      } else {
+        // Client disconnected, clean up
+        this._clients.delete(String(clientId));
+        for (const [
+          requestId,
+          mappedClientId,
+        ] of this._requestToClientMapping.entries()) {
+          if (mappedClientId === String(clientId)) {
+            this._requestToClientMapping.delete(requestId);
+          }
+        }
+        throw new Error(`Client ${clientId} is not connected`);
       }
     } else {
-      if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
-        throw new Error("WebSocket is not ready");
+      // Broadcast to all connected clients
+      let sent = false;
+      for (const [clientId, client] of this._clients.entries()) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(message));
+          sent = true;
+          // Track request-to-client mapping for response routing
+          if ("sessionId" in message && message.sessionId !== undefined) {
+            this._requestToClientMapping.set(
+              String(message.sessionId),
+              clientId
+            );
+          }
+        }
       }
-      this.socket.send(JSON.stringify(message));
+
+      if (!sent) {
+        throw new Error("No connected clients available");
+      }
     }
   }
 
+  /**
+   * Closes the transport and cleans up resources
+   */
   async close(): Promise<void> {
     return new Promise((resolve) => {
-      this.socket?.close();
-      this.wss?.close(() => {
-        this.clients.clear();
+      // Close all client connections
+      for (const client of this._clients.values()) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.close();
+        }
+      }
+
+      this._clients.clear();
+      this._requestToClientMapping.clear();
+
+      // Close the server
+      this._wss?.close(() => {
+        // Call session closed callback if we have a session
+        if (this.sessionId && this._onsessionclosed) {
+          Promise.resolve(this._onsessionclosed(this.sessionId)).catch(
+            (error) => {
+              this.onerror?.(error);
+            }
+          );
+        }
+
+        this._initialized = false;
+        this.sessionId = undefined;
+        this.onclose?.();
+
         resolve();
       });
-      this.onclose?.();
-      this.emit("close");
     });
+  }
+
+  /**
+   * Gets the number of connected clients
+   */
+  get connectedClientsCount(): number {
+    return this._clients.size;
+  }
+
+  /**
+   * Gets the list of connected client IDs
+   */
+  get connectedClientIds(): string[] {
+    return Array.from(this._clients.keys());
   }
 }
