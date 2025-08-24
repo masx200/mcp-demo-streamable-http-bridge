@@ -375,79 +375,119 @@ async function main() {
         return token === (config.apiKey ?? process.env.HTTP_API_TOKEN);
     }
     server.on("upgrade", async (request, socket, head) => {
-        if (!config.wsServer?.enabled) {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-            socket.destroy();
-            return;
-        }
-        if (config.apiKey ?? process.env.HTTP_API_TOKEN) {
-            const authHeader = request.headers["authorization"];
-            if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+        try {
+            console.log("receive upgrade request");
+            console.log({
+                head: head.toString(),
+                url: request.url,
+                method: request.method,
+                headers: request.headers,
+            });
+            if (!config.wsServer?.enabled) {
+                socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
                 socket.destroy();
                 return;
             }
-            const token = authHeader.slice("Bearer ".length); // 去掉 "Bearer "
-            if (!validateBearerToken(token)) {
-                socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+            if (config.apiKey ?? process.env.HTTP_API_TOKEN) {
+                const authHeader = request.headers["authorization"];
+                if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+                    socket.destroy();
+                    return;
+                }
+                const token = authHeader.slice("Bearer ".length); // 去掉 "Bearer "
+                if (!validateBearerToken(token)) {
+                    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+                    socket.destroy();
+                    return;
+                }
+            }
+            //@ts-ignore
+            if (!request.url?.startsWith(config.wsServer?.pathPrefix ?? "/ws")) {
+                socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
                 socket.destroy();
                 return;
             }
+            const mcpservername = request.url?.substring((config.wsServer?.pathPrefix ?? "/ws").length + 1);
+            const mcpserverconfig = config.mcpServers?.[decodeURIComponent(mcpservername)];
+            if (!mcpserverconfig) {
+                socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+                socket.destroy();
+                return;
+            }
+            const value = servers.get(mcpservername);
+            if (!value) {
+                socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+                socket.destroy();
+                return;
+            }
+            const serverConfig = value.config;
+            // 初始化MCP服务器,懒加载实现
+            const serverInstance = value;
+            const serverName = mcpservername;
+            if (!serverInstance?.server) {
+                console.log("Initializing MCP server", serverName, serverConfig);
+                const instance = await createMcpServer(serverName, serverConfig);
+                serverInstance.server = instance.server;
+                serverInstance.client = instance.client;
+                serverInstance.transport = instance.transport;
+            }
+            else {
+                console.log("already Initialized  MCP server", serverName, serverConfig);
+            }
+            const wsTransport = new WebSocketServerTransport({
+                onsessionclosed: (sessionId) => {
+                    console.log("wsTransport sessionClosed", sessionId);
+                },
+                onsessioninitialized: (sessionId) => {
+                    console.log("wsTransport sessionInitialized", sessionId);
+                },
+                onClose: (socket) => {
+                    console.log("wsTransport closed", socket);
+                },
+                onConnection: (socket) => {
+                    console.log("wsTransport connected", socket);
+                },
+                path: (config.wsServer?.pathPrefix ?? "/ws") + "/" + encodeURIComponent(serverName),
+                noServer: true,
+                verifyClient: !(config.apiKey ?? process.env.HTTP_API_TOKEN)
+                    ? undefined
+                    : async function (info, callback) {
+                        const request = info.req;
+                        const authHeader = request.headers["authorization"];
+                        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                            console.log("no authHeader,verifyClient failed");
+                            callback(false);
+                            return;
+                        }
+                        const token = authHeader.slice("Bearer ".length);
+                        const result = validateBearerToken(token);
+                        console.log("verifyClient result", result);
+                        callback(result);
+                    },
+            });
+            if (!wsTransport) {
+                throw new Error("wsTransport is not defined");
+            }
+            const mcpserverinstance = serverInstance.server;
+            if (!mcpserverinstance) {
+                throw new Error("mcpserverinstance is not defined");
+            }
+            //@ts-ignore
+            await mcpserverinstance.connect(wsTransport);
+            const wss = wsTransport.wss;
+            if (!wss) {
+                throw new Error("wss is not defined");
+            }
+            wss.handleUpgrade(request, socket, head, (ws) => {
+                wss.emit("connection", ws, request);
+            });
+            wsservertransports.add(wsTransport);
+            console.log("wsTransport connected", wsTransport.sessionId);
         }
-        //@ts-ignore
-        if (!request.url?.startsWith(config.wsServer?.pathPrefix ?? "/ws")) {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-            socket.destroy();
-            return;
+        catch (error) {
+            console.error("wsTransport error", error);
         }
-        const mcpservername = request.url?.substring((config.wsServer?.pathPrefix ?? "/ws").length + 1);
-        const mcpserverconfig = config.mcpServers?.[decodeURIComponent(mcpservername)];
-        if (!mcpserverconfig) {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-            socket.destroy();
-            return;
-        }
-        const value = servers.get(mcpservername);
-        if (!value) {
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-            socket.destroy();
-            return;
-        }
-        const serverConfig = value.config;
-        // 初始化MCP服务器,懒加载实现
-        const serverInstance = value;
-        const serverName = mcpservername;
-        if (!serverInstance?.server) {
-            console.log("Initializing MCP server", serverName, serverConfig);
-            const instance = await createMcpServer(serverName, serverConfig);
-            serverInstance.server = instance.server;
-            serverInstance.client = instance.client;
-            serverInstance.transport = instance.transport;
-        }
-        else {
-            console.log("already Initialized  MCP server", serverName, serverConfig);
-        }
-        const wsTransport = new WebSocketServerTransport({
-            path: config.wsServer?.pathPrefix ?? "/ws",
-            noServer: true,
-        });
-        if (!wsTransport) {
-            throw new Error("wsTransport is not defined");
-        }
-        const mcpserverinstance = serverInstance.server;
-        if (!mcpserverinstance) {
-            throw new Error("mcpserverinstance is not defined");
-        }
-        //@ts-ignore
-        await mcpserverinstance.connect(wsTransport);
-        const wss = wsTransport.wss;
-        if (!wss) {
-            throw new Error("wss is not defined");
-        }
-        wss.handleUpgrade(request, socket, head, (ws) => {
-            wss.emit("connection", ws, request);
-        });
-        wsservertransports.add(wsTransport);
     });
     server.on("error", (err) => {
         console.error(`Error starting server: ${err.message}`);

@@ -1,6 +1,7 @@
 import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
+import { v4 as uuid } from "uuid";
 /**
  * Server transport for WebSocket: this implements the MCP WebSocket transport specification.
  * It supports session management and follows the same patterns as StreamableHTTPServerTransport.
@@ -47,7 +48,7 @@ export class WebSocketServerTransport {
     _allowedOrigins;
     _enableDnsRebindingProtection;
     _onConnection;
-    sessionId;
+    sessionId = uuid();
     onclose;
     onerror;
     //@ts-ignore
@@ -55,14 +56,14 @@ export class WebSocketServerTransport {
     setProtocolVersion;
     constructor(options = {}) {
         this.options = options;
-        const { port = 3000, host = "localhost", onConnection } = options;
-        this.sessionIdGenerator = options.sessionIdGenerator ??
-            (() => randomUUID());
+        const { port, host, onConnection } = options;
+        this.sessionIdGenerator =
+            options.sessionIdGenerator ?? (() => randomUUID());
         this._onsessioninitialized = options.onsessioninitialized;
         this._onsessionclosed = options.onsessionclosed;
         this._allowedOrigins = options.allowedOrigins;
-        this._enableDnsRebindingProtection = options.enableDnsRebindingProtection ??
-            false;
+        this._enableDnsRebindingProtection =
+            options.enableDnsRebindingProtection ?? false;
         this._onConnection = onConnection;
         this._wss = new WebSocketServer({ port, host, ...options });
     }
@@ -70,64 +71,79 @@ export class WebSocketServerTransport {
      * Starts the transport. This is required by the Transport interface.
      */
     async start() {
+        console.log("starting WebSocketServerTransport");
         if (this._started) {
             throw new Error("Transport already started");
         }
+        this._wss.on("error", (err) => {
+            console.error("WebSocketServerTransport error", err);
+            this.onerror?.(err);
+        });
         this._wss.on("connection", (ws, req) => {
-            // Validate request headers for DNS rebinding protection
-            const validationError = this.validateWebSocketRequest(req);
-            if (validationError) {
-                ws.close(1008, validationError);
-                this.onerror?.(new Error(validationError));
-                return;
-            }
-            const clientId = randomUUID();
-            this._clients.set(clientId, ws);
-            // Initialize session if this is the first connection
-            if (!this._initialized && this.sessionIdGenerator) {
-                this.sessionId = this.sessionIdGenerator();
-                this._initialized = true;
-                // If we have a session ID and an onsessioninitialized handler, call it immediately
-                if (this.sessionId && this._onsessioninitialized) {
-                    Promise.resolve(this._onsessioninitialized(this.sessionId)).catch((error) => {
-                        this.onerror?.(error);
-                    });
+            console.log("WebSocketServerTransport connection", ws, req);
+            try {
+                // Validate request headers for DNS rebinding protection
+                const validationError = this.validateWebSocketRequest(req);
+                if (validationError) {
+                    ws.close(1008, validationError);
+                    this.onerror?.(new Error(validationError));
+                    return;
                 }
-            }
-            // 透传上层回调
-            this._onConnection?.(ws);
-            // 收到消息 -> 解析 -> 调用onmessage回调
-            ws.on("message", (data) => {
-                let msg;
-                try {
-                    msg = Object.assign(JSONRPCMessageSchema.parse(JSON.parse(data.toString())), { sessionId: JSON.parse(data.toString()).sessionId });
-                }
-                catch (err) {
-                    this.onerror?.(new Error(`Failed to parse message: ${err}`));
-                    return; // 非法 JSON 直接忽略
-                }
-                const authInfo = undefined;
-                const requestInfo = { headers: req.headers };
-                this.onmessage?.(msg, {
-                    authInfo,
-                    requestInfo,
-                    sessionId: msg.sessionId,
-                });
-            });
-            ws.on("close", () => {
-                this._clients.delete(clientId);
-                // Clean up request mappings
-                for (const [requestId, mappedClientId,] of this._requestToClientMapping.entries()) {
-                    if (mappedClientId === clientId) {
-                        this._requestToClientMapping.delete(requestId);
+                const clientId = randomUUID();
+                this._clients.set(clientId, ws);
+                // Initialize session if this is the first connection
+                if (!this._initialized && this.sessionIdGenerator) {
+                    this.sessionId = this.sessionIdGenerator();
+                    this._initialized = true;
+                    // If we have a session ID and an onsessioninitialized handler, call it immediately
+                    if (this.sessionId && this._onsessioninitialized) {
+                        Promise.resolve(this._onsessioninitialized(this.sessionId)).catch((error) => {
+                            this.onerror?.(error);
+                        });
                     }
                 }
-            });
-            ws.on("error", (err) => {
-                this.onerror?.(err);
-            });
+                // 透传上层回调
+                this._onConnection?.(ws);
+                // 收到消息 -> 解析 -> 调用onmessage回调
+                ws.on("message", (data) => {
+                    let msg;
+                    try {
+                        msg = Object.assign(JSONRPCMessageSchema.parse(JSON.parse(data.toString())), { sessionId: JSON.parse(data.toString()).sessionId });
+                    }
+                    catch (err) {
+                        this.onerror?.(new Error(`Failed to parse message: ${err}`));
+                        return; // 非法 JSON 直接忽略
+                    }
+                    const authInfo = undefined;
+                    const requestInfo = { headers: req.headers };
+                    this.onmessage?.(msg, {
+                        authInfo,
+                        requestInfo,
+                        sessionId: msg.sessionId,
+                    });
+                });
+                ws.on("close", () => {
+                    this.options.onClose?.(ws);
+                    this._clients.delete(clientId);
+                    // Clean up request mappings
+                    for (const [requestId, mappedClientId,] of this._requestToClientMapping.entries()) {
+                        if (mappedClientId === clientId) {
+                            this._requestToClientMapping.delete(requestId);
+                        }
+                    }
+                    this.close();
+                });
+                ws.on("error", (err) => {
+                    this.onerror?.(err);
+                });
+                this._started = true;
+            }
+            catch (error) {
+                this.options.onError?.(error);
+                this.onerror?.(error);
+            }
         });
-        this._started = true;
+        console.log("started WebSocketServerTransport");
     }
     /**
      * Validates WebSocket request headers for DNS rebinding protection.
@@ -195,6 +211,7 @@ export class WebSocketServerTransport {
      * Closes the transport and cleans up resources
      */
     async close() {
+        console.log("close WebSocketServerTransport", this.sessionId);
         return new Promise((resolve) => {
             // Close all client connections
             for (const client of this._clients.values()) {

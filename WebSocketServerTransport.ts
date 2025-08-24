@@ -10,7 +10,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
-
+import { v4 as uuid } from "uuid";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { ServerOptions } from "ws";
 /**
@@ -56,7 +56,8 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
    * 连接建立后的额外回调
    */
   onConnection?: (socket: WebSocket) => void;
-
+  onClose?: (socket: WebSocket) => void;
+  onError?: (error: Error) => void;
   /**
    * List of allowed origin header values for DNS rebinding protection.
    * If not specified, origin validation is disabled.
@@ -117,25 +118,25 @@ export class WebSocketServerTransport implements Transport {
   private _enableDnsRebindingProtection: boolean;
   private _onConnection?: (socket: WebSocket) => void;
 
-  sessionId?: string;
+  sessionId?: string = uuid();
   onclose?: () => void;
   onerror?: (error: Error) => void;
   //@ts-ignore
   onmessage?: (
     message: JSONRPCMessage,
-    extra?: MessageExtraInfo & { sessionId: string },
+    extra?: MessageExtraInfo & { sessionId: string }
   ) => void;
   setProtocolVersion?: (version: string) => void;
 
   constructor(public options: WebSocketServerTransportOptions = {}) {
-    const { port = 3000, host = "localhost", onConnection } = options;
-    this.sessionIdGenerator = options.sessionIdGenerator ??
-      (() => randomUUID());
+    const { port, host, onConnection } = options;
+    this.sessionIdGenerator =
+      options.sessionIdGenerator ?? (() => randomUUID());
     this._onsessioninitialized = options.onsessioninitialized;
     this._onsessionclosed = options.onsessionclosed;
     this._allowedOrigins = options.allowedOrigins;
-    this._enableDnsRebindingProtection = options.enableDnsRebindingProtection ??
-      false;
+    this._enableDnsRebindingProtection =
+      options.enableDnsRebindingProtection ?? false;
     this._onConnection = onConnection;
 
     this._wss = new WebSocketServer({ port, host, ...options });
@@ -145,92 +146,103 @@ export class WebSocketServerTransport implements Transport {
    * Starts the transport. This is required by the Transport interface.
    */
   async start(): Promise<void> {
+    console.log("starting WebSocketServerTransport");
     if (this._started) {
       throw new Error("Transport already started");
     }
-
+    this._wss!.on("error", (err) => {
+      console.error("WebSocketServerTransport error", err);
+      this.onerror?.(err);
+    });
     this._wss!.on("connection", (ws, req) => {
-      // Validate request headers for DNS rebinding protection
-      const validationError = this.validateWebSocketRequest(req);
-      if (validationError) {
-        ws.close(1008, validationError);
-        this.onerror?.(new Error(validationError));
-        return;
-      }
-
-      const clientId = randomUUID();
-      this._clients.set(clientId, ws);
-
-      // Initialize session if this is the first connection
-      if (!this._initialized && this.sessionIdGenerator) {
-        this.sessionId = this.sessionIdGenerator();
-        this._initialized = true;
-
-        // If we have a session ID and an onsessioninitialized handler, call it immediately
-        if (this.sessionId && this._onsessioninitialized) {
-          Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
-            (error) => {
-              this.onerror?.(error);
-            },
-          );
-        }
-      }
-
-      // 透传上层回调
-      this._onConnection?.(ws);
-
-      // 收到消息 -> 解析 -> 调用onmessage回调
-      ws.on("message", (data) => {
-        let msg: JSONRPCMessage & { sessionId: string };
-
-        try {
-          msg = Object.assign(
-            JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
-            { sessionId: JSON.parse(data.toString()).sessionId },
-          );
-        } catch (err) {
-          this.onerror?.(new Error(`Failed to parse message: ${err}`));
-          return; // 非法 JSON 直接忽略
+      console.log("WebSocketServerTransport connection", ws, req);
+      try {
+        // Validate request headers for DNS rebinding protection
+        const validationError = this.validateWebSocketRequest(req);
+        if (validationError) {
+          ws.close(1008, validationError);
+          this.onerror?.(new Error(validationError));
+          return;
         }
 
-        const authInfo: AuthInfo | undefined = undefined;
-        const requestInfo: RequestInfo = { headers: req.headers };
+        const clientId = randomUUID();
+        this._clients.set(clientId, ws);
 
-        this.onmessage?.(msg, {
-          authInfo,
-          requestInfo,
-          sessionId: msg.sessionId,
-        });
-      });
+        // Initialize session if this is the first connection
+        if (!this._initialized && this.sessionIdGenerator) {
+          this.sessionId = this.sessionIdGenerator();
+          this._initialized = true;
 
-      ws.on("close", () => {
-        this._clients.delete(clientId);
-        // Clean up request mappings
-        for (
-          const [
-            requestId,
-            mappedClientId,
-          ] of this._requestToClientMapping.entries()
-        ) {
-          if (mappedClientId === clientId) {
-            this._requestToClientMapping.delete(requestId);
+          // If we have a session ID and an onsessioninitialized handler, call it immediately
+          if (this.sessionId && this._onsessioninitialized) {
+            Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
+              (error) => {
+                this.onerror?.(error);
+              }
+            );
           }
         }
-      });
 
-      ws.on("error", (err) => {
-        this.onerror?.(err);
-      });
+        // 透传上层回调
+        this._onConnection?.(ws);
+
+        // 收到消息 -> 解析 -> 调用onmessage回调
+        ws.on("message", (data) => {
+          let msg: JSONRPCMessage & { sessionId: string };
+
+          try {
+            msg = Object.assign(
+              JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
+              { sessionId: JSON.parse(data.toString()).sessionId }
+            );
+          } catch (err) {
+            this.onerror?.(new Error(`Failed to parse message: ${err}`));
+            return; // 非法 JSON 直接忽略
+          }
+
+          const authInfo: AuthInfo | undefined = undefined;
+          const requestInfo: RequestInfo = { headers: req.headers };
+
+          this.onmessage?.(msg, {
+            authInfo,
+            requestInfo,
+            sessionId: msg.sessionId,
+          });
+        });
+
+        ws.on("close", () => {
+          this.options.onClose?.(ws);
+          this._clients.delete(clientId);
+          // Clean up request mappings
+          for (const [
+            requestId,
+            mappedClientId,
+          ] of this._requestToClientMapping.entries()) {
+            if (mappedClientId === clientId) {
+              this._requestToClientMapping.delete(requestId);
+            }
+          }
+          this.close();
+        });
+
+        ws.on("error", (err) => {
+          this.onerror?.(err);
+        });
+
+        this._started = true;
+      } catch (error: any) {
+        this.options.onError?.(error);
+        this.onerror?.(error);
+      }
     });
-
-    this._started = true;
+    console.log("started WebSocketServerTransport");
   }
 
   /**
    * Validates WebSocket request headers for DNS rebinding protection.
    * @returns Error message if validation fails, undefined if validation passes.
    */
-  private validateWebSocketRequest(req: any): string | undefined {
+  public validateWebSocketRequest(req: any): string | undefined {
     // Skip validation if protection is not enabled
     if (!this._enableDnsRebindingProtection) {
       return undefined;
@@ -252,7 +264,7 @@ export class WebSocketServerTransport implements Transport {
    */
   async send(
     message: JSONRPCMessage & { sessionId: string },
-    options?: TransportSendOptions,
+    options?: TransportSendOptions
   ): Promise<void> {
     const clientId = options?.relatedRequestId;
 
@@ -265,18 +277,16 @@ export class WebSocketServerTransport implements Transport {
         if ("sessionId" in message && message.sessionId !== undefined) {
           this._requestToClientMapping.set(
             String(message.sessionId),
-            String(clientId),
+            String(clientId)
           );
         }
       } else {
         // Client disconnected, clean up
         this._clients.delete(String(clientId));
-        for (
-          const [
-            requestId,
-            mappedClientId,
-          ] of this._requestToClientMapping.entries()
-        ) {
+        for (const [
+          requestId,
+          mappedClientId,
+        ] of this._requestToClientMapping.entries()) {
           if (mappedClientId === String(clientId)) {
             this._requestToClientMapping.delete(requestId);
           }
@@ -290,15 +300,15 @@ export class WebSocketServerTransport implements Transport {
         if (client.readyState === WebSocket.OPEN) {
           client.send(
             JSON.stringify(
-              Object.assign(message, { sessionId: clientId ?? this.sessionId }),
-            ),
+              Object.assign(message, { sessionId: clientId ?? this.sessionId })
+            )
           );
           sent = true;
           // Track request-to-client mapping for response routing
           if ("sessionId" in message && message.sessionId !== undefined) {
             this._requestToClientMapping.set(
               String(message.sessionId),
-              clientId,
+              clientId
             );
           }
         }
@@ -314,6 +324,7 @@ export class WebSocketServerTransport implements Transport {
    * Closes the transport and cleans up resources
    */
   async close(): Promise<void> {
+    console.log("close WebSocketServerTransport", this.sessionId);
     return new Promise((resolve) => {
       // Close all client connections
       for (const client of this._clients.values()) {
@@ -332,7 +343,7 @@ export class WebSocketServerTransport implements Transport {
           Promise.resolve(this._onsessionclosed(this.sessionId)).catch(
             (error) => {
               this.onerror?.(error);
-            },
+            }
           );
         }
 

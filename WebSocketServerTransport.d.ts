@@ -40,6 +40,8 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
      * 连接建立后的额外回调
      */
     onConnection?: (socket: WebSocket) => void;
+    onClose?: (socket: WebSocket) => void;
+    onError?: (error: Error) => void;
     /**
      * List of allowed origin header values for DNS rebinding protection.
      * If not specified, origin validation is disabled.
@@ -110,7 +112,7 @@ export declare class WebSocketServerTransport implements Transport {
      * Validates WebSocket request headers for DNS rebinding protection.
      * @returns Error message if validation fails, undefined if validation passes.
      */
-    private validateWebSocketRequest;
+    validateWebSocketRequest(req: any): string | undefined;
     /**
      * Sends a message through the WebSocket transport
      */

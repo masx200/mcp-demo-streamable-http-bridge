@@ -39,7 +39,7 @@ export async function createMcpServer(
       },
     },
   );
-//@ts-ignore
+  //@ts-ignore
   await client.connect(transport);
   const capabilities = Object.assign({}, await getServerCapabilities(client));
   console.log(`[${serverName}] capabilities:`, capabilities);
