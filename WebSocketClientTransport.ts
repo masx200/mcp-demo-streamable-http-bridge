@@ -132,7 +132,7 @@ async  start(): Promise<void> {
   }
 
   send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
-    console.log("send WebSocketClientTransport", message);
+    console.log("send WebSocketClientTransport",JSON.stringify(message,null,4));
     return new Promise((resolve, reject) => {
       if (!this._socket) {
         reject(new Error("Not connected"));
@@ -149,7 +149,7 @@ async  start(): Promise<void> {
           })
         )
       );
-      console.log("send WebSocketClientTransport", message);
+      console.log("send WebSocketClientTransport",JSON.stringify(message,null,4));
       resolve();
     });
   }

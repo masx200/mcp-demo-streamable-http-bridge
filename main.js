@@ -426,7 +426,7 @@ async function main() {
             }
             const options = {
                 onMessage(message) {
-                    console.log("wsTransport message", message);
+                    console.log("wsTransport message", JSON.stringify(message, null, 4));
                 },
                 onError(error) {
                     console.error("wsTransport error", error);

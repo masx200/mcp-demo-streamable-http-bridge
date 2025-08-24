@@ -13,6 +13,7 @@ export async function createMcpServer(serverName, serverConfig) {
         throw new Error("Failed to create transport, please check the configuration.");
     }
     console.log("clienttransport", transport);
+    //  const client= new McpClient()
     const client = new Client({ name: `bridge-client-${serverName}`, version: "1.0.0" }, {
         capabilities: {
             tools: {},
@@ -23,7 +24,7 @@ export async function createMcpServer(serverName, serverConfig) {
     //@ts-ignore
     await client.connect(transport);
     console.log("client connected", transport);
-    const capabilities = await getServerCapabilities(client) ?? {};
+    const capabilities = (await getServerCapabilities(client)) ?? {};
     console.log(`[${serverName}] capabilities:`, capabilities);
     const listOutputs = {
         tools: null,
@@ -36,6 +37,9 @@ export async function createMcpServer(serverName, serverConfig) {
         const tools = await client.listTools();
         console.log(`[${serverName}] Registering tools:`, JSON.stringify(tools, null, 4));
         listOutputs.tools = tools;
+        capabilities.tools = {
+            listChanged: true,
+        };
     }
     catch (error) {
         console.error(`[${serverName}] Error listing tools:`, error);
@@ -46,6 +50,9 @@ export async function createMcpServer(serverName, serverConfig) {
         const prompts = await client.listPrompts();
         console.log(`[${serverName}] Registering prompts:`, JSON.stringify(prompts, null, 4));
         listOutputs.prompts = prompts;
+        capabilities.prompts = {
+            listChanged: true,
+        };
     }
     catch (error) {
         console.error(`[${serverName}] Error listing prompts:`, error);
@@ -56,6 +63,9 @@ export async function createMcpServer(serverName, serverConfig) {
         const Resources = await client.listResources();
         console.log(`[${serverName}] Registering Resources:`, JSON.stringify(Resources, null, 4));
         listOutputs.resources = Resources;
+        capabilities.resources = {
+            listChanged: true,
+        };
     }
     catch (error) {
         console.error(`[${serverName}] Error listing Resources:`, error);
@@ -68,6 +78,9 @@ export async function createMcpServer(serverName, serverConfig) {
         const ResourcesTemplates = await client.listResourceTemplates();
         console.log(`[${serverName}] Registering ResourcesTemplates:`, JSON.stringify(ResourcesTemplates, null, 4));
         listOutputs.resourceTemplates = ResourcesTemplates;
+        capabilities.resources = {
+            listChanged: true,
+        };
     }
     catch (error) {
         console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
@@ -83,11 +96,16 @@ export async function createMcpServer(serverName, serverConfig) {
         name: `bridge-service-${serverName}`,
         version: "1.0.0",
     }, {
-        capabilities: capabilities,
+        capabilities: Object.assign(capabilities, {
+            tools: { listChanged: true },
+        }),
     });
     // 注册工具
     try {
         if (capabilities.tools && listOutputs.tools) {
+            server.server.registerCapabilities({
+                tools: { listChanged: true },
+            });
             const tools = listOutputs.tools;
             await Promise.all(tools.tools.map(async (tool) => {
                 console.log(`[${serverName}] Registering tool: `, JSON.stringify({
@@ -166,6 +184,7 @@ export async function createMcpServer(serverName, serverConfig) {
     catch (error) {
         console.error(`[${serverName}] Error Registering Resources:`, error);
     }
+    console.log("getServerCapabilities", client.getServerCapabilities());
     return {
         config: serverConfig,
         server,

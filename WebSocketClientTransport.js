@@ -91,7 +91,7 @@ export class WebSocketClientTransport {
         this._socket?.close();
     }
     send(message, options) {
-        console.log("send WebSocketClientTransport", message);
+        console.log("send WebSocketClientTransport", JSON.stringify(message, null, 4));
         return new Promise((resolve, reject) => {
             if (!this._socket) {
                 reject(new Error("Not connected"));
@@ -104,7 +104,7 @@ export class WebSocketClientTransport {
             this._socket?.send(JSON.stringify(Object.assign(message, {
             // sessionId: options?.relatedRequestId ?? this.sessionId,
             })));
-            console.log("send WebSocketClientTransport", message);
+            console.log("send WebSocketClientTransport", JSON.stringify(message, null, 4));
             resolve();
         });
     }

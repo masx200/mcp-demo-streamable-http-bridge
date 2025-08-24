@@ -5,13 +5,10 @@ import type {
 import {
   type JSONRPCMessage,
   JSONRPCMessageSchema,
-  type MessageExtraInfo,
-  type RequestInfo,
+  type MessageExtraInfo
 } from "@modelcontextprotocol/sdk/types.js";
-import { randomUUID } from "node:crypto";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket } from "ws";
 import { v4 as uuid } from "uuid";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { ServerOptions } from "ws";
 import type { IncomingMessage } from "node:http";
 /**
@@ -141,12 +138,12 @@ export class WebSocketServerTransport implements Transport {
     message: JSONRPCMessage,
     options?: TransportSendOptions | undefined
   ): Promise<void> {
-    console.log("WebSocketServerTransport send", message);
+    console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
     if (this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("WebSocket is not open");
     }
     this.ws.send(JSON.stringify(message));
-    console.log("WebSocketServerTransport send", message);
+    console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
   }
   async close(): Promise<void> {
     this.ws.close();

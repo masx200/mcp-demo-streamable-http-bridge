@@ -116,7 +116,7 @@ export function createWebSocketClientTransport(serverConfig) {
             console.log("WebSocketClientTransport opened", socket.url);
         },
         onMessage: (message) => {
-            console.log("WebSocketClientTransport message", message);
+            console.log("WebSocketClientTransport message", JSON.stringify(message, null, 4));
         },
     });
 }

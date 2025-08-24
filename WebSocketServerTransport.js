@@ -1,6 +1,5 @@
-import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { randomUUID } from "node:crypto";
-import { WebSocket, WebSocketServer } from "ws";
+import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
+import { WebSocket } from "ws";
 import { v4 as uuid } from "uuid";
 /**
  * Server transport for WebSocket: this implements the MCP WebSocket transport specification.
@@ -64,12 +63,12 @@ export class WebSocketServerTransport {
         });
     }
     async send(message, options) {
-        console.log("WebSocketServerTransport send", message);
+        console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
         if (this.ws.readyState !== WebSocket.OPEN) {
             throw new Error("WebSocket is not open");
         }
         this.ws.send(JSON.stringify(message));
-        console.log("WebSocketServerTransport send", message);
+        console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
     }
     async close() {
         this.ws.close();
