@@ -8,7 +8,7 @@ import {
   type MessageExtraInfo,
 } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
-import { v4 as uuid } from "uuid";
+
 import type { ServerOptions } from "ws";
 import type { IncomingMessage } from "node:http";
 /**
@@ -169,6 +169,7 @@ export class WebSocketServerTransport implements Transport {
   onmessage?:
     | ((message: JSONRPCMessage, extra?: MessageExtraInfo | undefined) => void)
     | undefined;
-  sessionId?: string | undefined = uuid();
+    //这里不能先设定sessionId,否则会影响初始化
+  sessionId?: string | undefined 
   setProtocolVersion?: ((version: string) => void) | undefined;
 }

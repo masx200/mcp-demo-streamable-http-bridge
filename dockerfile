@@ -1,4 +1,4 @@
-from  registry.cn-hangzhou.aliyuncs.com/masx200/supergateway-github-mcp-server:2025-08-06-03-24-16
+from    docker.cnb.cool/masx200/docker_mirror/mcp-streamable-http-bridge:2025-08-24-11-13-24
 
 
 run cat  <<EOF > /etc/apt/sources.list 

@@ -34,7 +34,8 @@ export type WebSocketClientOptions =
 export class WebSocketClientTransport implements Transport {
   private _socket?: WebSocket;
   private _url: URL;
-  sessionId = uuid();
+  //这里不能先设定sessionId,否则会影响初始化
+ sessionId?: string | undefined 
   onclose?: () => void;
   onerror?: (error: Error) => void;
   //@ts-ignore
