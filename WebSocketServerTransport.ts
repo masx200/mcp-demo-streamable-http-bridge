@@ -108,6 +108,7 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
  */
 export class WebSocketServerTransport implements Transport {
   socket: WebSocket | undefined;
+  private callback: (wss: WebSocketServer) => Promise<void>;
   get wss(): WebSocketServer | undefined {
     return this._wss;
   }
@@ -132,7 +133,8 @@ export class WebSocketServerTransport implements Transport {
   onmessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo) => void;
   setProtocolVersion?: (version: string) => void;
 
-  constructor(public options: WebSocketServerTransportOptions = {}) {
+  constructor( callback: (wss: WebSocketServer) => Promise<void>,public options: WebSocketServerTransportOptions = {}) {
+    this.callback = callback;
     const { port, host, onConnection } = options;
     this.sessionIdGenerator =
       options.sessionIdGenerator ?? (() => randomUUID());
@@ -144,117 +146,129 @@ export class WebSocketServerTransport implements Transport {
     this._onConnection = onConnection;
 
     this._wss = new WebSocketServer({ port, host, ...options });
+    new Promise<void>((resolve, reject) => {
+      console.log("starting WebSocketServerTransport");
+      if (this._started) {
+        throw new Error("Transport already started");
+      }
+      this._wss!.on("error", (error) => {
+        reject(error);
+        console.error("WebSocketServerTransport error", error);
+        this.options.onError?.(error);
+        this.onerror?.(error);
+      });
+      this._wss!.on("connection", (ws, req) => {
+        this.socket = ws;
+        this.options?.onOpen?.(ws);
+        resolve();
+        console.log("WebSocketServerTransport connection", ws.url, req.url);
+        try {
+          // Validate request headers for DNS rebinding protection
+          const validationError = this.validateWebSocketRequest(req);
+          if (validationError) {
+            ws.close(1008, validationError.message);
+            this.options.onError?.(new Error(validationError.message));
+            this.onerror?.(new Error(validationError.message));
+            return;
+          }
+
+          const clientId = randomUUID();
+          this._clients.set(clientId, ws);
+
+          // Initialize session if this is the first connection
+          if (!this._initialized && this.sessionIdGenerator) {
+            this.sessionId = this.sessionIdGenerator();
+            this._initialized = true;
+
+            // If we have a session ID and an onsessioninitialized handler, call it immediately
+            if (this.sessionId && this._onsessioninitialized) {
+              Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
+                (error) => {
+                  this.onerror?.(error);
+
+                  this.options.onError?.(error);
+                }
+              );
+            }
+          }
+
+          // 透传上层回调
+          this._onConnection?.(ws);
+
+          // 收到消息 -> 解析 -> 调用onmessage回调
+          ws.on("message", (data) => {
+            console.log("WebSocketServerTransport message", data.toString());
+            let msg: JSONRPCMessage & { sessionId: string };
+
+            try {
+              msg = Object.assign(
+                JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
+                { sessionId: JSON.parse(data.toString()).sessionId }
+              );
+            } catch (err) {
+              console.error("WebSocketServerTransport message error", err);
+              this.onerror?.(new Error(`Failed to parse message: ${err}`));
+              this.options.onError?.(
+                new Error(`Failed to parse message: ${err}`)
+              );
+              return; // 非法 JSON 直接忽略
+            }
+
+            const authInfo: AuthInfo | undefined = undefined;
+            const requestInfo: RequestInfo = { headers: req.headers };
+            this.options.onMessage?.(msg, {
+              authInfo,
+              requestInfo,
+              // sessionId: msg.sessionId,
+            });
+            this.onmessage?.(msg, {
+              authInfo,
+              requestInfo,
+              // sessionId: msg.sessionId,
+            });
+          });
+
+          ws.on("close", () => {
+            this.options.onClose?.(ws);
+            this._clients.delete(clientId);
+            // Clean up request mappings
+            // for (const [
+            //   requestId,
+            //   mappedClientId,
+            // ] of this._requestToClientMapping.entries()) {
+            //   if (mappedClientId === clientId) {
+            //     this._requestToClientMapping.delete(requestId);
+            //   }
+            // }
+            this.close();
+          });
+
+          ws.on("error", (error) => {
+            this.onerror?.(error);
+            this.options.onError?.(error);
+          });
+
+          this._started = true;
+        } catch (error: any) {
+          this.options.onError?.(error);
+          this.onerror?.(error);
+        }
+      });
+      console.log("started WebSocketServerTransport");
+    }).then(console.log, console.error);
   }
 
   /**
    * Starts the transport. This is required by the Transport interface.
    */
   async start(): Promise<void> {
-    console.log("starting WebSocketServerTransport");
+    //@ts-ignore
+    await this.callback(this._wss)
     if (this._started) {
-      throw new Error("Transport already started");
+      console.error("Transport already started");
+      return;
     }
-    this._wss!.on("error", (error) => {
-      console.error("WebSocketServerTransport error", error);
-      this.options.onError?.(error);
-      this.onerror?.(error);
-    });
-    this._wss!.on("connection", (ws, req) => {
-      this.socket = ws;
-      this.options?.onOpen?.(ws);
-      console.log("WebSocketServerTransport connection", ws.url, req.url);
-      try {
-        // Validate request headers for DNS rebinding protection
-        const validationError = this.validateWebSocketRequest(req);
-        if (validationError) {
-          ws.close(1008, validationError.message);
-          this.options.onError?.(new Error(validationError.message));
-          this.onerror?.(new Error(validationError.message));
-          return;
-        }
-
-        const clientId = randomUUID();
-        this._clients.set(clientId, ws);
-
-        // Initialize session if this is the first connection
-        if (!this._initialized && this.sessionIdGenerator) {
-          this.sessionId = this.sessionIdGenerator();
-          this._initialized = true;
-
-          // If we have a session ID and an onsessioninitialized handler, call it immediately
-          if (this.sessionId && this._onsessioninitialized) {
-            Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
-              (error) => {
-                this.onerror?.(error);
-
-                this.options.onError?.(error);
-              }
-            );
-          }
-        }
-
-        // 透传上层回调
-        this._onConnection?.(ws);
-
-        // 收到消息 -> 解析 -> 调用onmessage回调
-        ws.on("message", (data) => {
-          console.log("WebSocketServerTransport message", data.toString());
-          let msg: JSONRPCMessage & { sessionId: string };
-
-          try {
-            msg = Object.assign(
-              JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
-              { sessionId: JSON.parse(data.toString()).sessionId }
-            );
-          } catch (err) {
-            this.onerror?.(new Error(`Failed to parse message: ${err}`));
-            this.options.onError?.(
-              new Error(`Failed to parse message: ${err}`)
-            );
-            return; // 非法 JSON 直接忽略
-          }
-
-          const authInfo: AuthInfo | undefined = undefined;
-          const requestInfo: RequestInfo = { headers: req.headers };
-          this.options.onMessage?.(msg, {
-            authInfo,
-            requestInfo,
-            // sessionId: msg.sessionId,
-          });
-          this.onmessage?.(msg, {
-            authInfo,
-            requestInfo,
-            // sessionId: msg.sessionId,
-          });
-        });
-
-        ws.on("close", () => {
-          this.options.onClose?.(ws);
-          this._clients.delete(clientId);
-          // Clean up request mappings
-          // for (const [
-          //   requestId,
-          //   mappedClientId,
-          // ] of this._requestToClientMapping.entries()) {
-          //   if (mappedClientId === clientId) {
-          //     this._requestToClientMapping.delete(requestId);
-          //   }
-          // }
-          this.close();
-        });
-
-        ws.on("error", (error) => {
-          this.onerror?.(error);
-          this.options.onError?.(error);
-        });
-
-        this._started = true;
-      } catch (error: any) {
-        this.options.onError?.(error);
-        this.onerror?.(error);
-      }
-    });
-    console.log("started WebSocketServerTransport");
+    this._started = true;
   }
 
   /**
@@ -285,10 +299,14 @@ export class WebSocketServerTransport implements Transport {
     message: JSONRPCMessage & { sessionId: string },
     options?: TransportSendOptions
   ): Promise<void> {
+    console.log("send WebSocketServerTransport", message);
     return new Promise((resolve, reject) => {
-      let sent = false;
       if (!this.socket) {
         reject(new Error("Not connected"));
+        return;
+      }
+      if (this.socket.readyState !== WebSocket.OPEN) {
+        reject(new Error("WebSocket is not open"));
         return;
       }
       this.socket?.send(
@@ -298,10 +316,8 @@ export class WebSocketServerTransport implements Transport {
           })
         )
       );
+      console.log("send WebSocketServerTransport", message);
       resolve();
-      if (!sent) {
-        throw new Error("No connected clients available");
-      }
     });
   }
 

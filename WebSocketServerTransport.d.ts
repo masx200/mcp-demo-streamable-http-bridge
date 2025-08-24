@@ -87,6 +87,7 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
 export declare class WebSocketServerTransport implements Transport {
     options: WebSocketServerTransportOptions;
     socket: WebSocket | undefined;
+    private callback;
     get wss(): WebSocketServer | undefined;
     private sessionIdGenerator;
     private _started;
@@ -103,7 +104,7 @@ export declare class WebSocketServerTransport implements Transport {
     onerror?: (error: Error) => void;
     onmessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo) => void;
     setProtocolVersion?: (version: string) => void;
-    constructor(options?: WebSocketServerTransportOptions);
+    constructor(callback: (wss: WebSocketServer) => Promise<void>, options?: WebSocketServerTransportOptions);
     /**
      * Starts the transport. This is required by the Transport interface.
      */

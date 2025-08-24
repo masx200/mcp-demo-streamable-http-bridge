@@ -11,19 +11,20 @@ import type { ClientRequestArgs } from "http";
 import { v4 as uuid } from "uuid";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
-export type WebSocketClientOptions =
-  & (WebSocket.ClientOptions | ClientRequestArgs)
-  & {
-    protocols?: string | string[];
-    onError?: (error: Error) => void;
-    onClose?: (socket: WebSocket) => void;
-    onOpen?: (socket: WebSocket) => void;
-    onMessage?: (
-      message: JSONRPCMessage,
-      //@ts-ignore
-      extra?: MessageExtraInfo,
-    ) => void;
-  };
+export type WebSocketClientOptions = (
+  | WebSocket.ClientOptions
+  | ClientRequestArgs
+) & {
+  protocols?: string | string[];
+  onError?: (error: Error) => void;
+  onClose?: (socket: WebSocket) => void;
+  onOpen?: (socket: WebSocket) => void;
+  onMessage?: (
+    message: JSONRPCMessage,
+    //@ts-ignore
+    extra?: MessageExtraInfo
+  ) => void;
+};
 
 /**
  * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
@@ -38,17 +39,17 @@ export class WebSocketClientTransport implements Transport {
   onmessage?: (
     message: JSONRPCMessage,
     //@ts-ignore
-    extra?: MessageExtraInfo,
+    extra?: MessageExtraInfo
   ) => void;
 
   constructor(public url: URL, public options?: WebSocketClientOptions) {
     this._url = url;
   }
 
-  start(): Promise<void> {
+async  start(): Promise<void> {
     if (this._socket) {
       throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically."
       );
     }
 
@@ -56,13 +57,14 @@ export class WebSocketClientTransport implements Transport {
       this._socket = new WebSocket(
         this._url,
         this.options?.protocols ?? SUBPROTOCOL,
-        this.options,
+        this.options
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error = "error" in event
-          ? (event.error as Error)
-          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error =
+          "error" in event
+            ? (event.error as Error)
+            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
         this.options?.onError?.(error);
@@ -95,9 +97,10 @@ export class WebSocketClientTransport implements Transport {
         let message: JSONRPCMessage;
         try {
           message = Object.assign(
-            JSONRPCMessageSchema.parse(JSON.parse(event.data)),
+            JSONRPCMessageSchema.parse(JSON.parse(event.data))
             // { sessionId: JSON.parse(event.data).sessionId }
           );
+
           // if (
           //   message?.sessionId !== undefined &&
           //   message?.sessionId !== this.sessionId
@@ -105,6 +108,7 @@ export class WebSocketClientTransport implements Transport {
           //   this.sessionId = message.sessionId;
           // }
         } catch (error: any) {
+          console.error("WebSocketClientTransport message error", error);
           this.onerror?.(error as Error);
           this.options?.onError?.(error);
           return;
@@ -128,19 +132,24 @@ export class WebSocketClientTransport implements Transport {
   }
 
   send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
+    console.log("send WebSocketClientTransport", message);
     return new Promise((resolve, reject) => {
       if (!this._socket) {
         reject(new Error("Not connected"));
         return;
       }
-
+      if (this._socket.readyState !== WebSocket.OPEN) {
+        reject(new Error("WebSocket is not open"));
+        return;
+      }
       this._socket?.send(
         JSON.stringify(
           Object.assign(message, {
             // sessionId: options?.relatedRequestId ?? this.sessionId,
-          }),
-        ),
+          })
+        )
       );
+      console.log("send WebSocketClientTransport", message);
       resolve();
     });
   }

@@ -20,7 +20,7 @@ export class WebSocketClientTransport {
         this.options = options;
         this._url = url;
     }
-    start() {
+    async start() {
         if (this._socket) {
             throw new Error("WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.");
         }
@@ -58,7 +58,9 @@ export class WebSocketClientTransport {
                 }
                 let message;
                 try {
-                    message = Object.assign(JSONRPCMessageSchema.parse(JSON.parse(event.data)));
+                    message = Object.assign(JSONRPCMessageSchema.parse(JSON.parse(event.data))
+                    // { sessionId: JSON.parse(event.data).sessionId }
+                    );
                     // if (
                     //   message?.sessionId !== undefined &&
                     //   message?.sessionId !== this.sessionId
@@ -67,6 +69,7 @@ export class WebSocketClientTransport {
                     // }
                 }
                 catch (error) {
+                    console.error("WebSocketClientTransport message error", error);
                     this.onerror?.(error);
                     this.options?.onError?.(error);
                     return;
@@ -88,14 +91,20 @@ export class WebSocketClientTransport {
         this._socket?.close();
     }
     send(message, options) {
+        console.log("send WebSocketClientTransport", message);
         return new Promise((resolve, reject) => {
             if (!this._socket) {
                 reject(new Error("Not connected"));
                 return;
             }
+            if (this._socket.readyState !== WebSocket.OPEN) {
+                reject(new Error("WebSocket is not open"));
+                return;
+            }
             this._socket?.send(JSON.stringify(Object.assign(message, {
             // sessionId: options?.relatedRequestId ?? this.sessionId,
             })));
+            console.log("send WebSocketClientTransport", message);
             resolve();
         });
     }

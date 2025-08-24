@@ -571,49 +571,59 @@ async function main() {
           serverConfig
         );
       }
-      const wsTransport = new WebSocketServerTransport({
-        onMessage(message) {
-          console.log("wsTransport message", message);
+      const wsTransport = new WebSocketServerTransport(
+        async (wss) => {
+          return new Promise((resolve, reject) => {
+            wss.handleUpgrade(request, socket, head, (ws) => {
+              wss.emit("connection", ws, request);
+              resolve();
+            });
+          });
         },
-        onError(error) {
-          console.error("wsTransport error", error);
-        },
-        onOpen(socket) {
-          console.log("wsTransport opened", socket.url);
-        },
-        onsessionclosed: (sessionId) => {
-          console.log("wsTransport sessionClosed", sessionId);
-        },
-        onsessioninitialized: (sessionId) => {
-          console.log("wsTransport sessionInitialized", sessionId);
-        },
-        onClose: (socket) => {
-          console.log("wsTransport closed", socket.url);
-        },
-        onConnection: (socket) => {
-          console.log("wsTransport connected", socket.url);
-        },
-        path:
-          (config.wsServer?.pathPrefix ?? "/ws") +
-          "/" +
-          encodeURIComponent(serverName),
-        noServer: true,
-        verifyClient: !(config.apiKey ?? process.env.HTTP_API_TOKEN)
-          ? undefined
-          : async function (info, callback) {
-              const request = info.req as IncomingMessage;
-              const authHeader = request.headers["authorization"];
-              if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                console.log("no authHeader,verifyClient failed");
-                callback(false);
-                return;
-              }
-              const token = authHeader.slice("Bearer ".length);
-              const result = validateBearerToken(token);
-              console.log("verifyClient result", result);
-              callback(result);
-            },
-      });
+        {
+          onMessage(message) {
+            console.log("wsTransport message", message);
+          },
+          onError(error) {
+            console.error("wsTransport error", error);
+          },
+          onOpen(socket) {
+            console.log("wsTransport opened", socket.url);
+          },
+          onsessionclosed: (sessionId) => {
+            console.log("wsTransport sessionClosed", sessionId);
+          },
+          onsessioninitialized: (sessionId) => {
+            console.log("wsTransport sessionInitialized", sessionId);
+          },
+          onClose: (socket) => {
+            console.log("wsTransport closed", socket.url);
+          },
+          onConnection: (socket) => {
+            console.log("wsTransport connected", socket.url);
+          },
+          path:
+            (config.wsServer?.pathPrefix ?? "/ws") +
+            "/" +
+            encodeURIComponent(serverName),
+          noServer: true,
+          verifyClient: !(config.apiKey ?? process.env.HTTP_API_TOKEN)
+            ? undefined
+            : async function (info, callback) {
+                const request = info.req as IncomingMessage;
+                const authHeader = request.headers["authorization"];
+                if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                  console.log("no authHeader,verifyClient failed");
+                  callback(false);
+                  return;
+                }
+                const token = authHeader.slice("Bearer ".length);
+                const result = validateBearerToken(token);
+                console.log("verifyClient result", result);
+                callback(result);
+              },
+        }
+      );
       console.log("wsserverTransport", wsTransport);
       if (!wsTransport) {
         throw new Error("wsTransport is not defined");
@@ -622,16 +632,18 @@ async function main() {
       if (!mcpserverinstance) {
         throw new Error("mcpserverinstance is not defined");
       }
-      //@ts-ignore
-      await mcpserverinstance.connect(wsTransport);
-      console.log("wsTransport connected", wsTransport);
+
       const wss = wsTransport.wss;
       if (!wss) {
         throw new Error("wss is not defined");
       }
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-      });
+
+      //@ts-ignore
+      await mcpserverinstance.connect(wsTransport);
+      console.log("mcpserverinstance connect", mcpserverinstance);
+
+      console.log("wsTransport connected", wsTransport);
+
       wsservertransports.add(wsTransport);
 
       console.log("wsTransport connected", wsTransport.sessionId);

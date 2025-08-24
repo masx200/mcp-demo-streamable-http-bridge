@@ -113,8 +113,14 @@ export async function createMcpServer(
       JSON.stringify(ResourcesTemplates, null, 4)
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
+
+    if (
+      String(error).includes("McpError: MCP error -32001: Request timed out")
+    ) {
+      throw error;
+    }
     capabilities.resources = undefined;
     if (listOutputs.resources || listOutputs.resourceTemplates) {
       capabilities.resources = {};
