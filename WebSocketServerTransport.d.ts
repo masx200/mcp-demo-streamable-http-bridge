@@ -1,6 +1,6 @@
 import type { Transport, TransportSendOptions } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { type JSONRPCMessage, type MessageExtraInfo } from "@modelcontextprotocol/sdk/types.js";
-import { WebSocket } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import type { ServerOptions } from "ws";
 /**
  * Configuration options for WebSocketServerTransport
@@ -82,6 +82,7 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
  */
 export declare class WebSocketServerTransport implements Transport {
     options: WebSocketServerTransportOptions;
+    get wss(): WebSocketServer | undefined;
     private sessionIdGenerator;
     private _started;
     private _clients;

@@ -1,6 +1,6 @@
 import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { WebSocket, WebSocketServer } from "ws";
 import { randomUUID } from "node:crypto";
+import { WebSocket, WebSocketServer } from "ws";
 /**
  * Server transport for WebSocket: this implements the MCP WebSocket transport specification.
  * It supports session management and follows the same patterns as StreamableHTTPServerTransport.
@@ -32,6 +32,9 @@ import { randomUUID } from "node:crypto";
  */
 export class WebSocketServerTransport {
     options;
+    get wss() {
+        return this._wss;
+    }
     // when sessionId is not set (undefined), it means the transport is in stateless mode
     sessionIdGenerator;
     _started = false;

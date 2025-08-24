@@ -65,8 +65,8 @@ export interface ServerInstance {
     | SSEClientTransport
     | StreamableHTTPClientTransport
     | WebSocketClientTransport;
-  httpTransport?: StreamableHTTPServerTransport;
-  sseTransport?: SSEServerTransport;
+  httpTransports?: StreamableHTTPServerTransport[];
+  sseTransports?: SSEServerTransport[];
 
   config: McpServerConfig;
 }
@@ -114,7 +114,7 @@ function loadEnvConfig(): Partial<Config> {
 
 // 获取服务器能力
 async function getServerCapabilities(
-  client: Client,
+  client: Client
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -131,14 +131,14 @@ async function getServerCapabilities(
 // 创建MCP服务器实例
 async function createMcpServer(
   serverName: string,
-  serverConfig: McpServerConfig,
+  serverConfig: McpServerConfig
 ): Promise<ServerInstance> {
   // 使用selectTransport函数选择合适的transport
   const transport = selectTransport(serverConfig);
 
   if (!transport) {
     throw new Error(
-      "Failed to create transport, please check the configuration.",
+      "Failed to create transport, please check the configuration."
     );
   }
 
@@ -150,7 +150,7 @@ async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    },
+    }
   );
 
   await client.connect(transport);
@@ -181,7 +181,7 @@ async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4),
+      JSON.stringify(tools, null, 4)
     );
     listOutputs.tools = tools;
   } catch (error) {
@@ -194,7 +194,7 @@ async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4),
+      JSON.stringify(prompts, null, 4)
     );
     listOutputs.prompts = prompts;
   } catch (error) {
@@ -207,7 +207,7 @@ async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4),
+      JSON.stringify(Resources, null, 4)
     );
     listOutputs.resources = Resources;
   } catch (error) {
@@ -222,7 +222,7 @@ async function createMcpServer(
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4),
+      JSON.stringify(ResourcesTemplates, null, 4)
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
   } catch (error) {
@@ -239,7 +239,7 @@ async function createMcpServer(
     },
     {
       capabilities: capabilities,
-    },
+    }
   );
 
   // 注册工具
@@ -257,14 +257,14 @@ async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4,
-            ),
+              4
+            )
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            //@ts-ignore
-            ? JSONSchemaToZod.convert(tool.outputSchema).shape
+            ? //@ts-ignore
+              JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -280,16 +280,16 @@ async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4),
+                JSON.stringify({ name: tool.name, params }, null, 4)
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            },
+            }
           );
-        }),
+        })
       );
     }
   } catch (error) {
@@ -310,11 +310,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           const result = await client.getPrompt(request.params);
           return result;
-        },
+        }
       );
     }
   } catch (error) {
@@ -329,11 +329,11 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           const result = await client.readResource(request.params);
           return result;
-        },
+        }
       );
 
       server.server.setRequestHandler(
@@ -342,10 +342,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           return listOutputs.resources;
-        },
+        }
       );
 
       server.server.setRequestHandler(
@@ -354,10 +354,10 @@ async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4),
+            JSON.stringify(request.params, null, 4)
           );
           return listOutputs.resourceTemplates;
-        },
+        }
       );
     }
   } catch (error) {
@@ -369,7 +369,7 @@ async function createMcpServer(
     server,
     client,
     transport: transport,
-    httpTransport: null as any,
+    httpTransports: null as any,
   };
 }
 
@@ -383,8 +383,11 @@ async function initializeServers(config: Config) {
       instance?.server?.close();
       instance?.client?.close();
       instance?.transport?.close();
-      if (instance.httpTransport) {
-        instance.httpTransport.close();
+      if (instance.httpTransports) {
+        instance.httpTransports.forEach((transport) => transport.close());
+      }
+      if (instance.sseTransports) {
+        instance.sseTransports.forEach((transport) => transport.close());
       }
     } catch (error) {
       console.error(`Error closing server ${serverName}:`, error);
@@ -402,7 +405,7 @@ async function initializeServers(config: Config) {
       !Object.keys(serverConfig).includes("sseUrl")
     ) {
       throw new Error(
-        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file",
+        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file"
       );
     }
     try {
@@ -459,7 +462,7 @@ async function reloadConfiguration() {
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction,
+  next: express.NextFunction
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -508,7 +511,7 @@ const packageJson = await fs.promises.readFile(
   join(__dirname, "./package.json"),
   {
     encoding: "utf-8",
-  },
+  }
 );
 const packageJsonObj = JSON.parse(packageJson);
 // 主函数
@@ -557,7 +560,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    }),
+    })
   );
 
   app.use(express.json());
@@ -571,7 +574,7 @@ async function main() {
     console.log(
       "registering pathPrefix",
       pathPrefix + "/" + key,
-      pathPrefix + "/" + encodeURIComponent(key),
+      pathPrefix + "/" + encodeURIComponent(key)
     );
     app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
       const sessionId = req.headers["mcp-session-id"] as string;
@@ -601,14 +604,17 @@ async function main() {
             id: null,
           });
         }
-
-        serverInstance.httpTransport = transport;
+        serverInstance.httpTransports ??= [];
+        serverInstance.httpTransports.push(transport);
 
         // 清理传输
         transport.onclose = () => {
           if (transport.sessionId) {
             console.log(`Session closed: ${transport.sessionId}`);
             transports.delete(transport.sessionId);
+            serverInstance.httpTransports ??= [];
+            serverInstance.httpTransports =
+              serverInstance.httpTransports.filter((t) => t !== transport);
           }
         };
 
@@ -633,7 +639,7 @@ async function main() {
           console.log(
             "already Initialized  MCP server",
             serverName,
-            serverConfig,
+            serverConfig
           );
         }
 
@@ -683,7 +689,7 @@ async function main() {
             console.log(
               "Initializing MCP server for SSE",
               serverName,
-              serverConfig,
+              serverConfig
             );
             const instance = await createMcpServer(serverName, serverConfig);
             serverInstance.server = instance.server;
@@ -694,17 +700,19 @@ async function main() {
           // 创建SSE传输
           const sseTransport = new SSEServerTransport(
             messageEndpoint + `/${encodeURIComponent(key)}`,
-            res,
+            res
           );
-          serverInstance.sseTransport = sseTransport;
+          serverInstance.sseTransports ??= [];
+          serverInstance.sseTransports.push(sseTransport);
 
           // 存储SSE传输
           sseTransports.set(sseTransport.sessionId, sseTransport);
           console.log(`New SSE session initialized: ${sseTransport.sessionId}`);
           // 设置响应关闭时的清理逻辑
           res.on("close", () => {
-            if (serverInstance.sseTransport === sseTransport) {
-              serverInstance.sseTransport = undefined;
+            if (serverInstance.sseTransports?.includes(sseTransport)) {
+              serverInstance.sseTransports =
+                serverInstance.sseTransports.filter((t) => t !== sseTransport);
             }
             sseTransports.delete(sseTransport.sessionId);
             console.log(`SSE session closed: ${sseTransport.sessionId}`);
@@ -741,7 +749,7 @@ async function main() {
               res.status(500).json({ error: "Internal server error" });
             }
           }
-        },
+        }
       );
     }
   }
@@ -757,7 +765,7 @@ async function main() {
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
     );
 
     if (config.apiKey) {
@@ -769,11 +777,9 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${
-        Object.keys(config.mcpServers || {}).join(
-          ", ",
-        )
-      }`,
+      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
+        ", "
+      )}`
     );
 
     // 打印所有MCP HTTP端点
@@ -791,18 +797,14 @@ async function main() {
       for (const [key] of servers) {
         console.log(
           key,
-          `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
-          }`,
+          `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
+            key
+          )}`,
           "\n",
           key,
-          `Message Endpoint: http://${host}:${port}${messageEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
-          }`,
+          `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
+            key
+          )}`
         );
       }
     }

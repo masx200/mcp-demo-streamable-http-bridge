@@ -153,8 +153,8 @@ async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ? //@ts-ignore
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -226,7 +226,7 @@ async function createMcpServer(serverName, serverConfig) {
         server,
         client,
         transport: transport,
-        httpTransport: null,
+        httpTransports: null,
     };
 }
 // 初始化所有MCP服务器
@@ -239,8 +239,11 @@ async function initializeServers(config) {
             instance?.server?.close();
             instance?.client?.close();
             instance?.transport?.close();
-            if (instance.httpTransport) {
-                instance.httpTransport.close();
+            if (instance.httpTransports) {
+                instance.httpTransports.forEach((transport) => transport.close());
+            }
+            if (instance.sseTransports) {
+                instance.sseTransports.forEach((transport) => transport.close());
             }
         }
         catch (error) {
@@ -410,12 +413,16 @@ async function main() {
                         id: null,
                     });
                 }
-                serverInstance.httpTransport = transport;
+                serverInstance.httpTransports ??= [];
+                serverInstance.httpTransports.push(transport);
                 // 清理传输
                 transport.onclose = () => {
                     if (transport.sessionId) {
                         console.log(`Session closed: ${transport.sessionId}`);
                         transports.delete(transport.sessionId);
+                        serverInstance.httpTransports ??= [];
+                        serverInstance.httpTransports =
+                            serverInstance.httpTransports.filter((t) => t !== transport);
                     }
                 };
                 transport.onerror = (error) => {
@@ -485,14 +492,16 @@ async function main() {
                     }
                     // 创建SSE传输
                     const sseTransport = new SSEServerTransport(messageEndpoint + `/${encodeURIComponent(key)}`, res);
-                    serverInstance.sseTransport = sseTransport;
+                    serverInstance.sseTransports ??= [];
+                    serverInstance.sseTransports.push(sseTransport);
                     // 存储SSE传输
                     sseTransports.set(sseTransport.sessionId, sseTransport);
                     console.log(`New SSE session initialized: ${sseTransport.sessionId}`);
                     // 设置响应关闭时的清理逻辑
                     res.on("close", () => {
-                        if (serverInstance.sseTransport === sseTransport) {
-                            serverInstance.sseTransport = undefined;
+                        if (serverInstance.sseTransports?.includes(sseTransport)) {
+                            serverInstance.sseTransports =
+                                serverInstance.sseTransports.filter((t) => t !== sseTransport);
                         }
                         sseTransports.delete(sseTransport.sessionId);
                         console.log(`SSE session closed: ${sseTransport.sessionId}`);

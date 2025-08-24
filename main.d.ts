@@ -42,8 +42,8 @@ export interface ServerInstance {
     server?: McpServer;
     client?: Client;
     transport?: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport | WebSocketClientTransport;
-    httpTransport?: StreamableHTTPServerTransport;
-    sseTransport?: SSEServerTransport;
+    httpTransports?: StreamableHTTPServerTransport[];
+    sseTransports?: SSEServerTransport[];
     config: McpServerConfig;
 }
 export declare const DEFAULT_CONFIG: Config;
