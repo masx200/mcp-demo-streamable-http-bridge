@@ -17,7 +17,7 @@ deb https://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main co
 deb-src https://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmwarey main non-free-firmware
 EOF
 
-
+copy ./sources.list /etc/apt/sources.list
 
 run  cat  <<EOF > /etc/apt/sources.list.d/debian.sources
 
@@ -49,14 +49,14 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 EOF
 
-
+copy ./debian.sources /etc/apt/sources.list.d/debian.sources
 
 run apt update -y && apt clean  
 
 
 run apt install apt-transport-https ca-certificates -y && apt clean 
 
-run apt install python3 python3-pip   -y && apt clean 
+run apt install python3 python3-pip  nano sudo -y && apt clean 
 
 
 run npm config set registry https://registry.npmmirror.com
@@ -70,7 +70,7 @@ run cat  <<EOF > /root/.config/uv/config.toml
 url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 EOF
-
+copy ./config.toml /root/.config/uv/config.toml
 run  pip config set install.trusted-host 'https://pypi.tuna.tsinghua.edu.cn'
 run pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 run pip install uv --break-system-packages
