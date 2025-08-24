@@ -190,19 +190,31 @@ TypeScript 版本支持同时运行多个 MCP
 
 举例,可以通过这些网址访问 mcp 服务器的 memory 和 time 工具:
 
-http://localhost:3000/mcp/memory
+🌐 Available MCP ws endpoints:
 
-http://localhost:3000/mcp/time
+memory
+
+http://localhost:3000/ws/memory
+
+time
+
+http://localhost:3000/ws/time
 
 🌐 Available MCP HTTP endpoints:
 
-memory http://localhost:3000/mcp/memory
+memory
 
-time http://localhost:3000/mcp/time
+http://localhost:3000/mcp/memory
+
+time
+
+http://localhost:3000/mcp/time
 
 🌐 Available MCP SSE endpoints:
 
-SSE Endpoint: http://localhost:3000/sse/memory
+SSE Endpoint:
+
+http://localhost:3000/sse/memory
 
 Message Endpoint:
 
