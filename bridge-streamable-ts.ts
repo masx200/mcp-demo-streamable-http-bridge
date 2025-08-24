@@ -17,7 +17,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
-import fs from "fs";
+import fs, { type StatWatcher } from "fs";
 import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
@@ -82,7 +82,7 @@ const DEFAULT_CONFIG: Config = {
 let config: Config = { ...DEFAULT_CONFIG };
 let servers: Map<string, ServerInstance> = new Map();
 let configFilePath: string = "settings.json";
-let configWatcher: any = null;
+let configWatcher: StatWatcher|null = null;
 
 // 解析命令行参数
 function parseCommandLineArgs(): Config {
