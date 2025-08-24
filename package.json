@@ -7,10 +7,10 @@
     "watch": "npx tsc  -p tsconfig.json --watch",
     "build": "npx tsc  -p tsconfig.json",
     "start:bridge": "node bridge-streamable.js",
-    "start:bridge-ts": "yarn run build:ts && node bridge-streamable-ts.js",
-    "start": "yarn run build:ts && node bridge-streamable-ts.js",
+    "start:bridge-ts": "yarn run build:ts && node main.js",
+    "start": "yarn run build:ts && node main.js",
     "build:ts": "npx tsc  -p tsconfig.json",
-    "dev:ts": "npx ts-node bridge-streamable-ts.ts"
+    "dev:ts": "npx ts-node main.ts"
   },
   "keywords": [
     "mcp",
@@ -43,7 +43,7 @@
     "ts-node": "^10.9.2"
   },
   "description": "mcp-demo-streamable-http-bridge",
-  "main": "bridge-streamable-ts.js",
+  "main": "main.js",
   "repository": {
     "type": "git",
     "url": "https://gitee.com/masx200/mcp-demo-streamable-http-bridge"

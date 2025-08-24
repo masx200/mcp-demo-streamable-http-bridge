@@ -1,6 +1,6 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import type { Config } from "./bridge-streamable-ts.js";
+import type { Config } from "./main.js";
 
 // 解析命令行参数
 export function parseCommandLineArgs(): Config {
@@ -13,7 +13,8 @@ export function parseCommandLineArgs(): Config {
     .option("version", {
       type: "boolean",
       description: "Show version information",
-    }).alias("version", "v")
+    })
+    .alias("version", "v")
     .option("config", {
       type: "string",
       description: "Path to configuration file",

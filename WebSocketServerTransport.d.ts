@@ -98,7 +98,9 @@ export declare class WebSocketServerTransport implements Transport {
     onerror?: (error: Error) => void;
     onmessage?: (message: JSONRPCMessage & {
         sessionId: string;
-    }, extra?: MessageExtraInfo) => void;
+    }, extra?: MessageExtraInfo & {
+        sessionId: string;
+    }) => void;
     setProtocolVersion?: (version: string) => void;
     constructor(options?: WebSocketServerTransportOptions);
     /**

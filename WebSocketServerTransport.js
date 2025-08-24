@@ -105,7 +105,11 @@ export class WebSocketServerTransport {
                 }
                 const authInfo = undefined;
                 const requestInfo = { headers: req.headers };
-                this.onmessage?.(msg, { authInfo, requestInfo });
+                this.onmessage?.(msg, {
+                    authInfo,
+                    requestInfo,
+                    sessionId: msg.sessionId,
+                });
             });
             ws.on("close", () => {
                 this._clients.delete(clientId);

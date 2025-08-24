@@ -1,12 +1,12 @@
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { McpServerConfig } from "./bridge-streamable-ts.js";
+import type { McpServerConfig } from "./main.js";
 import { WebSocketClientTransport } from "./websocket.js";
 
 // 根据McpServerConfig选择合适的transport
 export function selectTransport(
-  serverConfig: McpServerConfig,
+  serverConfig: McpServerConfig
 ):
   | StdioClientTransport
   | SSEClientTransport
@@ -101,8 +101,8 @@ export function selectTransport(
           return new StdioClientTransport({
             command: serverConfig.command,
             args: serverConfig.args,
-            cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD ||
-              process.cwd(),
+            cwd:
+              serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
             env: Object.assign({}, serverConfig.env, process.env) as
               | Record<string, string>
               | undefined,

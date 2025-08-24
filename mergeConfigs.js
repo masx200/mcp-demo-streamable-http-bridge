@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from "./bridge-streamable-ts.js";
+import { DEFAULT_CONFIG } from "./main.js";
 // 合并配置
 export function mergeConfigs(cliConfig, fileConfig, envConfig) {
     const mergedMcpServers = {

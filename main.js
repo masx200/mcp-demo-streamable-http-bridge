@@ -583,4 +583,4 @@ let server = await main().catch((error) => {
     console.error("Failed to start application:", error);
     process.exit(1);
 });
-//# sourceMappingURL=bridge-streamable-ts.js.map
+//# sourceMappingURL=main.js.map

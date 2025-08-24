@@ -12,7 +12,7 @@ mcp-demo-streamable-http-bridge
 协议的桥接服务器。项目包含两个版本：
 
 - **JavaScript 版本** (`bridge-streamable.js`) - 原始版本，支持单个 MCP 服务器
-- **TypeScript 版本** (`bridge-streamable-ts.ts`) -
+- **TypeScript 版本** (`main.ts`) -
   增强版本，支持多服务器、配置文件、热重载等高级功能
 
 ## 软件架构
@@ -25,7 +25,7 @@ mcp-demo-streamable-http-bridge
 1. 确保已安装 Node.js 和 npm。
 2. 克隆仓库到本地。
 3. 进入项目目录并运行 `npm install` 安装依赖。
-4. 编译 TypeScript 版本（如果需要）：`npx tsc bridge-streamable-ts.ts`
+4. 编译 TypeScript 版本（如果需要）：`npx tsc main.ts`
 
 ## 使用说明
 
@@ -35,7 +35,7 @@ mcp-demo-streamable-http-bridge
 
 适合简单场景，支持单个 MCP 服务器桥接。
 
-#### TypeScript 版本 (bridge-streamable-ts.ts)
+#### TypeScript 版本 (main.ts)
 
 推荐使用，支持以下高级功能：
 
@@ -56,13 +56,13 @@ mcp-demo-streamable-http-bridge
 
 ```bash
 # 编译TypeScript文件
-npx tsc bridge-streamable-ts.ts
+npx tsc main.ts
 
 # 运行编译后的文件
-node bridge-streamable-ts.js
+node main.js
 
 # 或者直接运行（需要ts-node）
-npx ts-node bridge-streamable-ts.ts
+npx ts-node main.ts
 ```
 
 #### 命令行参数
@@ -70,7 +70,7 @@ npx ts-node bridge-streamable-ts.ts
 TypeScript 版本支持以下命令行参数：
 
 ```bash
-node bridge-streamable-ts.js [选项]
+node main.js [选项]
 
 选项：
   --hot-reload          启用配置文件热重载
@@ -91,19 +91,19 @@ node bridge-streamable-ts.js [选项]
 
 ```bash
 # 基本启动
-node bridge-streamable-ts.js
+node main.js
 
 # 启用热重载
-node bridge-streamable-ts.js --hot-reload
+node main.js --hot-reload
 
 # 指定配置文件
-node bridge-streamable-ts.js --config my-config.json
+node main.js --config my-config.json
 
 # 设置端口和API密钥
-node bridge-streamable-ts.js --port 8080 --api-key my-secret-key
+node main.js --port 8080 --api-key my-secret-key
 
 # 设置CORS允许的源
-node bridge-streamable-ts.js --cors-allow-origins http://localhost:3000 --cors-allow-origins http://localhost:8080
+node main.js --cors-allow-origins http://localhost:3000 --cors-allow-origins http://localhost:8080
 ```
 
 #### 配置文件支持
@@ -157,7 +157,7 @@ TypeScript 版本支持 JSON 配置文件，默认为`settings.json`。配置文
 
 ```bash
 # 启用热重载
-node bridge-streamable-ts.js --hot-reload
+node main.js --hot-reload
 
 # 或在配置文件中设置
 {
