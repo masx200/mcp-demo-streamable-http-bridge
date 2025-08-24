@@ -4,7 +4,7 @@ import { type Config, DEFAULT_CONFIG } from "./bridge-streamable-ts.js";
 export function mergeConfigs(
   cliConfig: Config,
   fileConfig: Config,
-  envConfig: Partial<Config>
+  envConfig: Partial<Config>,
 ): Config {
   const mergedMcpServers = {
     ...DEFAULT_CONFIG.mcpServers,
@@ -18,38 +18,31 @@ export function mergeConfigs(
     ...fileConfig,
     ...cliConfig,
     ...envConfig,
-    port:
-      envConfig.port ||
+    port: envConfig.port ||
       cliConfig.port ||
       fileConfig.port ||
       DEFAULT_CONFIG.port,
-    host:
-      envConfig.host ||
+    host: envConfig.host ||
       cliConfig.host ||
       fileConfig.host ||
       DEFAULT_CONFIG.host,
-    hotReload:
-      envConfig.hotReload ||
+    hotReload: envConfig.hotReload ||
       cliConfig.hotReload ||
       fileConfig.hotReload ||
       DEFAULT_CONFIG.hotReload,
-    pathPrefix:
-      envConfig.pathPrefix ||
+    pathPrefix: envConfig.pathPrefix ||
       cliConfig.pathPrefix ||
       fileConfig.pathPrefix ||
       DEFAULT_CONFIG.pathPrefix,
-    corsAllowOrigins:
-      envConfig.corsAllowOrigins ||
+    corsAllowOrigins: envConfig.corsAllowOrigins ||
       cliConfig.corsAllowOrigins ||
       fileConfig.corsAllowOrigins ||
       DEFAULT_CONFIG.corsAllowOrigins,
-    config:
-      envConfig.config ||
+    config: envConfig.config ||
       cliConfig.config ||
       fileConfig.config ||
       DEFAULT_CONFIG.config,
-    version:
-      envConfig.version ||
+    version: envConfig.version ||
       cliConfig.version ||
       fileConfig.version ||
       DEFAULT_CONFIG.version,

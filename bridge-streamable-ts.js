@@ -153,8 +153,8 @@ async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    ? //@ts-ignore
-                        JSONSchemaToZod.convert(tool.outputSchema).shape
+                    //@ts-ignore
+                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -555,10 +555,11 @@ async function main() {
             console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
         }
         if (config.sseServer && config.sseServer.enabled) {
+            console.log("🌐 Available MCP SSE endpoints:");
             const sseEndpoint = config.sseServer.endpoint || "/sse";
             const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
             for (const [key] of servers) {
-                console.log(`SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
+                console.log(`SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, "\n", `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
             }
         }
     });

@@ -194,6 +194,17 @@ http://localhost:3000/mcp/memory
 
 http://localhost:3000/mcp/time
 
+🌐 Available MCP HTTP endpoints:
+
+memory http://localhost:3000/mcp/memory time http://localhost:3000/mcp/time
+
+🌐 Available MCP SSE endpoints:
+
+SSE Endpoint: http://localhost:3000/sse/memory Message Endpoint:
+http://localhost:3000/messages/memory SSE Endpoint:
+http://localhost:3000/sse/time Message Endpoint:
+http://localhost:3000/messages/time
+
 #### 环境变量支持
 
 TypeScript 版本仍然支持原有的环境变量配置：
@@ -563,8 +574,10 @@ POST http://localhost:3000/messages/sse-server/?sessionId=<session-id>
 `selectTransport` 函数按照以下优先级自动选择传输协议：
 
 1. **Stdio 协议**: 当配置了 `command` 参数或 `transport/type` 为 `"stdio"` 时
-2. **SSE 客户端协议**: 当配置了 `sseUrl` 或 `url` 且 `transport/type` 为 `"sse"` 时
-3. **WebSocket 协议**: 当配置了 `wsUrl` 或 `url` 且 `transport/type` 为 `"ws"` 时
+2. **SSE 客户端协议**: 当配置了 `sseUrl` 或 `url` 且 `transport/type` 为 `"sse"`
+   时
+3. **WebSocket 协议**: 当配置了 `wsUrl` 或 `url` 且 `transport/type` 为 `"ws"`
+   时
 4. **HTTP 协议**: 当配置了 `httpUrl` 或 `url` 且 `transport/type` 为 `"http"` 时
 
 ### 混合配置示例

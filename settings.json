@@ -1,10 +1,8 @@
 {
   "sseServer": {
-    "sseServer": {
-      "enabled": true,
-      "endpoint": "/sse",
-      "messageEndpoint": "/messages"
-    }
+    "enabled": true,
+    "endpoint": "/sse",
+    "messageEndpoint": "/messages"
   },
   "pathPrefix": "/mcp",
   "hotReload": true,
