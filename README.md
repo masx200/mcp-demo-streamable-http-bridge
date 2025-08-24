@@ -196,13 +196,24 @@ http://localhost:3000/mcp/time
 
 🌐 Available MCP HTTP endpoints:
 
-memory http://localhost:3000/mcp/memory time http://localhost:3000/mcp/time
+memory http://localhost:3000/mcp/memory
+
+time http://localhost:3000/mcp/time
 
 🌐 Available MCP SSE endpoints:
 
-SSE Endpoint: http://localhost:3000/sse/memory Message Endpoint:
-http://localhost:3000/messages/memory SSE Endpoint:
-http://localhost:3000/sse/time Message Endpoint:
+SSE Endpoint: http://localhost:3000/sse/memory
+
+Message Endpoint:
+
+http://localhost:3000/messages/memory
+
+SSE Endpoint:
+
+http://localhost:3000/sse/time
+
+Message Endpoint:
+
 http://localhost:3000/messages/time
 
 #### 环境变量支持
