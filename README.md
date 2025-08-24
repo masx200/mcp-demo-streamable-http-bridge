@@ -116,7 +116,7 @@ TypeScript 版本支持 JSON 配置文件，默认为`settings.json`。配置文
   "hotReload": true,
   "apiKey": "your-secret-api-key",
   "port": 3000,
-  "host": "localhost",
+  "host": "0.0.0.0",
   "corsAllowOrigins": ["*"],
   "mcpServers": {
     "memory": {
