@@ -12,8 +12,10 @@ import { WebSocket, WebSocketServer } from "ws";
 import { EventEmitter } from "events";
 import type { WebSocketServerTransportOptions } from "./WebSocketServerTransportOptions.js";
 import { v4 as uuid } from "uuid";
-export class WebSocketServerTransport extends EventEmitter
-  implements Transport {
+export class WebSocketServerTransport
+  extends EventEmitter
+  implements Transport
+{
   private clients: Map<string, WebSocket> = new Map();
   private wss?: WebSocketServer;
   private socket?: WebSocket;
@@ -51,14 +53,14 @@ export class WebSocketServerTransport extends EventEmitter
           this.onerror?.(new Error(`Failed to parse message: ${err}`));
           return; // 非法 JSON 直接忽略
         }
-        this.onmessage?.(msg);
+        this.onmessage?.(Object.assign(msg, { id: clientId }));
       });
 
       ws.on("close", () => {
         this.ondisconnection?.(clientId);
         this.clients.delete(clientId);
         this.onclose?.();
-        this.close();
+       
       });
       ws.on("error", (err) => {
         this.onerror?.(err);
@@ -69,7 +71,7 @@ export class WebSocketServerTransport extends EventEmitter
 
   async send(
     message: JSONRPCMessage,
-    options?: TransportSendOptions,
+    options?: TransportSendOptions
   ): Promise<void> {
     const clientId = options?.relatedRequestId;
 
