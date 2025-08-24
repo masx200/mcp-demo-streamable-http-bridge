@@ -89,6 +89,7 @@ export declare class WebSocketServerTransport implements Transport {
     ws: WebSocket;
     request: IncomingMessage;
     options: WebSocketServerTransportOptions;
+    private started;
     constructor(ws: WebSocket, request: IncomingMessage, options: WebSocketServerTransportOptions);
     start(): Promise<void>;
     send(message: JSONRPCMessage, options?: TransportSendOptions | undefined): Promise<void>;

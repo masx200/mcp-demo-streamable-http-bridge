@@ -1,4 +1,4 @@
-import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
+import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
 /**
