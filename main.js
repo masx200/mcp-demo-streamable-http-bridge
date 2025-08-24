@@ -12,6 +12,15 @@ import fs, {} from "fs";
 import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import authenticateToken from "./authenticateToken.js";
+import { createMcpServer } from "./createMcpServer.js";
+import { mergeConfigs } from "./mergeConfigs.js";
+import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
+import { createServer, IncomingMessage, ServerResponse } from "http";
+import { WebSocketServerTransport } from "./WebSocketServerTransport.js";
+const wsservertransports = new Set();
 // 默认配置
 export const DEFAULT_CONFIG = {
     sseServer: {
@@ -78,6 +87,7 @@ export async function getServerCapabilities(client) {
 async function initializeServers(config) {
     if (!config.mcpServers)
         return;
+    cleanup();
     // 清理现有服务器
     for (const [serverName, instance] of servers) {
         try {
@@ -144,14 +154,9 @@ async function reloadConfiguration() {
     // 重新初始化服务器
     await initializeServers(config);
     await server.close();
+    cleanup();
     server = await main();
 }
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import authenticateToken from "./authenticateToken.js";
-import { createMcpServer } from "./createMcpServer.js";
-import { mergeConfigs } from "./mergeConfigs.js";
-import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 //@ts-ignore
@@ -362,11 +367,98 @@ async function main() {
     const port = config.port || 3000;
     const host = config.host || "0.0.0.0";
     console.log("📋 Configuration:", JSON.stringify(config, null, 4));
-    const server = app.listen(port, host, (err) => {
-        if (err) {
-            console.error("Failed to start server:", err);
-            process.exit(1);
+    const server = createServer((request, response) => {
+        app(request, response);
+    });
+    function validateBearerToken(token) {
+        // 示例：简单对比
+        return token === (config.apiKey ?? process.env.HTTP_API_TOKEN);
+    }
+    server.on("upgrade", async (request, socket, head) => {
+        if (!config.wsServer?.enabled) {
+            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.destroy();
+            return;
         }
+        if (config.apiKey ?? process.env.HTTP_API_TOKEN) {
+            const authHeader = request.headers["authorization"];
+            if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+                socket.destroy();
+                return;
+            }
+            const token = authHeader.slice("Bearer ".length); // 去掉 "Bearer "
+            if (!validateBearerToken(token)) {
+                socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+                socket.destroy();
+                return;
+            }
+        }
+        //@ts-ignore
+        if (!request.url?.startsWith(config.wsServer?.pathPrefix ?? "/ws")) {
+            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.destroy();
+            return;
+        }
+        const mcpservername = request.url?.substring((config.wsServer?.pathPrefix ?? "/ws").length + 1);
+        const mcpserverconfig = config.mcpServers?.[decodeURIComponent(mcpservername)];
+        if (!mcpserverconfig) {
+            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.destroy();
+            return;
+        }
+        const value = servers.get(mcpservername);
+        if (!value) {
+            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            socket.destroy();
+            return;
+        }
+        const serverConfig = value.config;
+        // 初始化MCP服务器,懒加载实现
+        const serverInstance = value;
+        const serverName = mcpservername;
+        if (!serverInstance?.server) {
+            console.log("Initializing MCP server", serverName, serverConfig);
+            const instance = await createMcpServer(serverName, serverConfig);
+            serverInstance.server = instance.server;
+            serverInstance.client = instance.client;
+            serverInstance.transport = instance.transport;
+        }
+        else {
+            console.log("already Initialized  MCP server", serverName, serverConfig);
+        }
+        const wsTransport = new WebSocketServerTransport({
+            path: config.wsServer?.pathPrefix ?? "/ws",
+            noServer: true,
+        });
+        if (!wsTransport) {
+            throw new Error("wsTransport is not defined");
+        }
+        const mcpserverinstance = serverInstance.server;
+        if (!mcpserverinstance) {
+            throw new Error("mcpserverinstance is not defined");
+        }
+        //@ts-ignore
+        await mcpserverinstance.connect(wsTransport);
+        const wss = wsTransport.wss;
+        if (!wss) {
+            throw new Error("wss is not defined");
+        }
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit("connection", ws, request);
+        });
+        wsservertransports.add(wsTransport);
+    });
+    server.on("error", (err) => {
+        console.error(`Error starting server: ${err.message}`);
+        cleanup();
+        process.exit(1);
+    });
+    server.listen(port, host, ( /* err */) => {
+        // if (err) {
+        //   console.error("Failed to start server:", err);
+        //   process.exit(1);
+        // }
         if (config.enableHttpServer) {
             console.log(`🚀 MCP Bridge (stdio ↔ Streamable HTTP) \n listening on http://${host}:${port}${pathPrefix}`);
         }
@@ -381,12 +473,20 @@ async function main() {
         }
         console.log(`📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(", ")}`);
         // 打印所有MCP HTTP端点
+        if (config.wsServer?.enabled) {
+            console.log("🌐 Available MCP ws endpoints:");
+            for (const [key] of servers) {
+                const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${encodeURIComponent(key)}`;
+                const encodedEndpoint = endpoint;
+                console.log(key, `\n   http://${host}:${port}${encodedEndpoint}`);
+            }
+        }
         if (config.enableHttpServer) {
             console.log("🌐 Available MCP HTTP endpoints:");
             for (const [key] of servers) {
                 const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
                 const encodedEndpoint = endpoint;
-                console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+                console.log(key, `\n   http://${host}:${port}${encodedEndpoint}`);
             }
         }
         if (config.sseServer && config.sseServer.enabled) {
@@ -394,12 +494,13 @@ async function main() {
             const sseEndpoint = config.sseServer.endpoint || "/sse";
             const messageEndpoint = config.sseServer.messageEndpoint || "/messages";
             for (const [key] of servers) {
-                console.log(key, `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, "\n", key, `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
+                console.log(key, `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${encodeURIComponent(key)}`, "\n", key, `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${encodeURIComponent(key)}`);
             }
         }
     });
     return {
         async close() {
+            cleanup();
             return new Promise((resolve, reject) => {
                 server.close((err) => {
                     if (err) {
@@ -417,4 +518,10 @@ let server = await main().catch((error) => {
     console.error("Failed to start application:", error);
     process.exit(1);
 });
+function cleanup() {
+    for (const transport of wsservertransports) {
+        transport.close();
+    }
+    wsservertransports.clear();
+}
 //# sourceMappingURL=main.js.map
