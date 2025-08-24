@@ -123,19 +123,19 @@ export class WebSocketServerTransport implements Transport {
   //@ts-ignore
   onmessage?: (
     message: JSONRPCMessage,
-    extra?: MessageExtraInfo & { sessionId: string }
+    extra?: MessageExtraInfo & { sessionId: string },
   ) => void;
   setProtocolVersion?: (version: string) => void;
 
   constructor(public options: WebSocketServerTransportOptions = {}) {
     const { port = 3000, host = "localhost", onConnection } = options;
-    this.sessionIdGenerator =
-      options.sessionIdGenerator ?? (() => randomUUID());
+    this.sessionIdGenerator = options.sessionIdGenerator ??
+      (() => randomUUID());
     this._onsessioninitialized = options.onsessioninitialized;
     this._onsessionclosed = options.onsessionclosed;
     this._allowedOrigins = options.allowedOrigins;
-    this._enableDnsRebindingProtection =
-      options.enableDnsRebindingProtection ?? false;
+    this._enableDnsRebindingProtection = options.enableDnsRebindingProtection ??
+      false;
     this._onConnection = onConnection;
 
     this._wss = new WebSocketServer({ port, host, ...options });
@@ -171,7 +171,7 @@ export class WebSocketServerTransport implements Transport {
           Promise.resolve(this._onsessioninitialized(this.sessionId)).catch(
             (error) => {
               this.onerror?.(error);
-            }
+            },
           );
         }
       }
@@ -186,7 +186,7 @@ export class WebSocketServerTransport implements Transport {
         try {
           msg = Object.assign(
             JSONRPCMessageSchema.parse(JSON.parse(data.toString())),
-            { sessionId: JSON.parse(data.toString()).sessionId }
+            { sessionId: JSON.parse(data.toString()).sessionId },
           );
         } catch (err) {
           this.onerror?.(new Error(`Failed to parse message: ${err}`));
@@ -206,10 +206,12 @@ export class WebSocketServerTransport implements Transport {
       ws.on("close", () => {
         this._clients.delete(clientId);
         // Clean up request mappings
-        for (const [
-          requestId,
-          mappedClientId,
-        ] of this._requestToClientMapping.entries()) {
+        for (
+          const [
+            requestId,
+            mappedClientId,
+          ] of this._requestToClientMapping.entries()
+        ) {
           if (mappedClientId === clientId) {
             this._requestToClientMapping.delete(requestId);
           }
@@ -250,7 +252,7 @@ export class WebSocketServerTransport implements Transport {
    */
   async send(
     message: JSONRPCMessage & { sessionId: string },
-    options?: TransportSendOptions
+    options?: TransportSendOptions,
   ): Promise<void> {
     const clientId = options?.relatedRequestId;
 
@@ -263,16 +265,18 @@ export class WebSocketServerTransport implements Transport {
         if ("sessionId" in message && message.sessionId !== undefined) {
           this._requestToClientMapping.set(
             String(message.sessionId),
-            String(clientId)
+            String(clientId),
           );
         }
       } else {
         // Client disconnected, clean up
         this._clients.delete(String(clientId));
-        for (const [
-          requestId,
-          mappedClientId,
-        ] of this._requestToClientMapping.entries()) {
+        for (
+          const [
+            requestId,
+            mappedClientId,
+          ] of this._requestToClientMapping.entries()
+        ) {
           if (mappedClientId === String(clientId)) {
             this._requestToClientMapping.delete(requestId);
           }
@@ -286,15 +290,15 @@ export class WebSocketServerTransport implements Transport {
         if (client.readyState === WebSocket.OPEN) {
           client.send(
             JSON.stringify(
-              Object.assign(message, { sessionId: clientId ?? this.sessionId })
-            )
+              Object.assign(message, { sessionId: clientId ?? this.sessionId }),
+            ),
           );
           sent = true;
           // Track request-to-client mapping for response routing
           if ("sessionId" in message && message.sessionId !== undefined) {
             this._requestToClientMapping.set(
               String(message.sessionId),
-              clientId
+              clientId,
             );
           }
         }
@@ -328,7 +332,7 @@ export class WebSocketServerTransport implements Transport {
           Promise.resolve(this._onsessionclosed(this.sessionId)).catch(
             (error) => {
               this.onerror?.(error);
-            }
+            },
           );
         }
 

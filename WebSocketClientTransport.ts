@@ -24,14 +24,15 @@ export class WebSocketClientTransport implements Transport {
   //@ts-ignore
   onmessage?: (
     message: JSONRPCMessage,
-    extra?: MessageExtraInfo & { sessionId: string }
+    //@ts-ignore
+    extra?: MessageExtraInfo & { sessionId: string },
   ) => void;
 
   constructor(
     public url: URL,
     public options?: (WebSocket.ClientOptions | ClientRequestArgs) & {
       protocols?: string | string[];
-    }
+    },
   ) {
     this._url = url;
   }
@@ -39,7 +40,7 @@ export class WebSocketClientTransport implements Transport {
   start(): Promise<void> {
     if (this._socket) {
       throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically."
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
       );
     }
 
@@ -47,14 +48,13 @@ export class WebSocketClientTransport implements Transport {
       this._socket = new WebSocket(
         this._url,
         this.options?.protocols ?? SUBPROTOCOL,
-        this.options
+        this.options,
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error =
-          "error" in event
-            ? (event.error as Error)
-            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error = "error" in event
+          ? (event.error as Error)
+          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
       };
@@ -81,7 +81,7 @@ export class WebSocketClientTransport implements Transport {
         try {
           message = Object.assign(
             JSONRPCMessageSchema.parse(JSON.parse(event.data)),
-            { sessionId: JSON.parse(event.data).sessionId }
+            { sessionId: JSON.parse(event.data).sessionId },
           );
           if (
             message?.sessionId !== undefined &&
@@ -118,8 +118,8 @@ export class WebSocketClientTransport implements Transport {
         JSON.stringify(
           Object.assign(message, {
             sessionId: options?.relatedRequestId ?? this.sessionId,
-          })
-        )
+          }),
+        ),
       );
       resolve();
     });

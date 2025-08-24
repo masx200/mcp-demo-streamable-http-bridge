@@ -53,5 +53,6 @@ export interface ServerInstance {
     config: McpServerConfig;
 }
 export declare const DEFAULT_CONFIG: Config;
+export declare let config: Config;
 export declare function getServerCapabilities(client: Client): Promise<ServerCapabilities | undefined>;
 //# sourceMappingURL=main.d.ts.map

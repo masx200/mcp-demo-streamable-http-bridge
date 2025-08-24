@@ -97,9 +97,7 @@ export declare class WebSocketServerTransport implements Transport {
     sessionId?: string;
     onclose?: () => void;
     onerror?: (error: Error) => void;
-    onmessage?: (message: JSONRPCMessage & {
-        sessionId: string;
-    }, extra?: MessageExtraInfo & {
+    onmessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo & {
         sessionId: string;
     }) => void;
     setProtocolVersion?: (version: string) => void;
@@ -123,13 +121,5 @@ export declare class WebSocketServerTransport implements Transport {
      * Closes the transport and cleans up resources
      */
     close(): Promise<void>;
-    /**
-     * Gets the number of connected clients
-     */
-    get connectedClientsCount(): number;
-    /**
-     * Gets the list of connected client IDs
-     */
-    get connectedClientIds(): string[];
 }
 //# sourceMappingURL=WebSocketServerTransport.d.ts.map

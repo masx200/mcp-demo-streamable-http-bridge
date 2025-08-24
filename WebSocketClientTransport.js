@@ -13,6 +13,7 @@ export class WebSocketClientTransport {
     sessionId = uuid();
     onclose;
     onerror;
+    //@ts-ignore
     onmessage;
     constructor(url, options) {
         this.url = url;
@@ -60,20 +61,26 @@ export class WebSocketClientTransport {
                     this.onerror?.(error);
                     return;
                 }
-                this.onmessage?.(message);
+                this.onmessage?.(message, {
+                    sessionId: message.sessionId,
+                    //@ts-ignore
+                    requestInfo: { headers: this.options?.headers ?? {} },
+                });
             };
         });
     }
     async close() {
         this._socket?.close();
     }
-    send(message) {
+    send(message, options) {
         return new Promise((resolve, reject) => {
             if (!this._socket) {
                 reject(new Error("Not connected"));
                 return;
             }
-            this._socket?.send(JSON.stringify(Object.assign(message, { sessionId: this.sessionId })));
+            this._socket?.send(JSON.stringify(Object.assign(message, {
+                sessionId: options?.relatedRequestId ?? this.sessionId,
+            })));
             resolve();
         });
     }

@@ -34,7 +34,7 @@ export const DEFAULT_CONFIG = {
     mcpServers: {},
 };
 // 全局变量
-let config = { ...DEFAULT_CONFIG };
+export let config = { ...DEFAULT_CONFIG };
 let servers = new Map();
 let configFilePath = "settings.json";
 let configWatcher = null;
@@ -146,38 +146,9 @@ async function reloadConfiguration() {
     await server.close();
     server = await main();
 }
-// 认证中间件
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
-    const expectedToken = config.apiKey;
-    // 如果配置了API密钥，则进行验证
-    if (expectedToken) {
-        if (!token || !authHeader?.startsWith("Bearer ")) {
-            return res.status(401).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: -32001,
-                    message: "Access token required",
-                },
-                id: null,
-            });
-        }
-        if (token !== expectedToken) {
-            return res.status(403).json({
-                jsonrpc: "2.0",
-                error: {
-                    code: -32002,
-                    message: "Invalid access token",
-                },
-                id: null,
-            });
-        }
-    }
-    next();
-}
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import authenticateToken from "./authenticateToken.js";
 import { createMcpServer } from "./createMcpServer.js";
 import { mergeConfigs } from "./mergeConfigs.js";
 import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
@@ -224,7 +195,7 @@ async function main() {
         allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
     }));
     app.use(express.json());
-    app.use(authenticateToken);
+    app.use(authenticateToken(config));
     const transports = new Map();
     const sseTransports = new Map();
     const pathPrefix = config.pathPrefix || "/mcp";
@@ -389,14 +360,16 @@ async function main() {
     }
     // 启动服务器
     const port = config.port || 3000;
-    const host = config.host || "localhost";
-    console.log(JSON.stringify(config, null, 4));
+    const host = config.host || "0.0.0.0";
+    console.log("📋 Configuration:", JSON.stringify(config, null, 4));
     const server = app.listen(port, host, (err) => {
         if (err) {
             console.error("Failed to start server:", err);
             process.exit(1);
         }
-        console.log(`🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`);
+        if (config.enableHttpServer) {
+            console.log(`🚀 MCP Bridge (stdio ↔ Streamable HTTP) \n listening on http://${host}:${port}${pathPrefix}`);
+        }
         if (config.apiKey) {
             console.log(`🔒 API Key authentication enabled`);
         }

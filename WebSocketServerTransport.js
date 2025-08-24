@@ -178,7 +178,7 @@ export class WebSocketServerTransport {
             let sent = false;
             for (const [clientId, client] of this._clients.entries()) {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(message));
+                    client.send(JSON.stringify(Object.assign(message, { sessionId: clientId ?? this.sessionId })));
                     sent = true;
                     // Track request-to-client mapping for response routing
                     if ("sessionId" in message && message.sessionId !== undefined) {
@@ -218,18 +218,6 @@ export class WebSocketServerTransport {
                 resolve();
             });
         });
-    }
-    /**
-     * Gets the number of connected clients
-     */
-    get connectedClientsCount() {
-        return this._clients.size;
-    }
-    /**
-     * Gets the list of connected client IDs
-     */
-    get connectedClientIds() {
-        return Array.from(this._clients.keys());
     }
 }
 //# sourceMappingURL=WebSocketServerTransport.js.map

@@ -18,6 +18,7 @@ export async function createMcpServer(serverName, serverConfig) {
             prompts: {},
         },
     });
+    //@ts-ignore
     await client.connect(transport);
     const capabilities = Object.assign({}, await getServerCapabilities(client));
     console.log(`[${serverName}] capabilities:`, capabilities);
@@ -91,8 +92,8 @@ export async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    ? //@ts-ignore
-                        JSONSchemaToZod.convert(tool.outputSchema).shape
+                    //@ts-ignore
+                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
