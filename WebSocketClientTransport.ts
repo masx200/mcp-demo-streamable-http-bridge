@@ -1,15 +1,10 @@
 import type {
   Transport,
-  TransportSendOptions,
+    TransportSendOptions,
 } from "@modelcontextprotocol/sdk/shared/transport.js";
-import {
-  type JSONRPCMessage,
-  JSONRPCMessageSchema,
-  type MessageExtraInfo,
-} from "@modelcontextprotocol/sdk/types.js";
-import type { ClientRequestArgs } from "http";
-import { v4 as uuid } from "uuid";
+import { type JSONRPCMessage, JSONRPCMessageSchema, type MessageExtraInfo } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
+import type { ClientRequestArgs } from "http";
 const SUBPROTOCOL = "mcp";
 export type WebSocketClientOptions =
   & (
@@ -35,7 +30,7 @@ export class WebSocketClientTransport implements Transport {
   private _socket?: WebSocket;
   private _url: URL;
   //这里不能先设定sessionId,否则会影响初始化
- sessionId?: string | undefined 
+  sessionId?: string | undefined
   onclose?: () => void;
   onerror?: (error: Error) => void;
   //@ts-ignore
@@ -59,7 +54,7 @@ export class WebSocketClientTransport implements Transport {
     return new Promise((resolve, reject) => {
       this._socket = new WebSocket(
         this._url,
-        this.options?.protocols ?? SUBPROTOCOL,
+        this.options ?.protocols ?? SUBPROTOCOL,
         this.options,
       );
 
@@ -68,20 +63,20 @@ export class WebSocketClientTransport implements Transport {
           ? (event.error as Error)
           : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
-        this.onerror?.(error);
-        this.options?.onError?.(error);
+        this.onerror ?.(error);
+        this.options ?.onError ?.(error);
       };
 
       this._socket.onopen = () => {
         //@ts-ignore
-        this.options?.onOpen?.(this._socket);
+        this.options ?.onOpen ?.(this._socket);
         resolve();
       };
 
       this._socket.onclose = () => {
-        this.onclose?.();
+        this.onclose ?.();
         //@ts-ignore
-        this.options?.onClose?.(this._socket);
+        this.options ?.onClose ?.(this._socket);
       };
 
       this._socket.onmessage = (event: WebSocket.MessageEvent) => {
@@ -91,8 +86,8 @@ export class WebSocketClientTransport implements Transport {
             throw new Error("WebSocket message must be a string");
           }
         } catch (error: any) {
-          this.onerror?.(error as Error);
-          this.options?.onError?.(error);
+          this.onerror ?.(error as Error);
+          this.options ?.onError ?.(error);
           return;
         }
 
@@ -111,26 +106,26 @@ export class WebSocketClientTransport implements Transport {
           // }
         } catch (error: any) {
           console.error("WebSocketClientTransport message error", error);
-          this.onerror?.(error as Error);
-          this.options?.onError?.(error);
+          this.onerror ?.(error as Error);
+          this.options ?.onError ?.(error);
           return;
         }
-        this.options?.onMessage?.(message, {
+        this.options ?.onMessage ?.(message, {
           // sessionId: message.sessionId,
           //@ts-ignore
-          requestInfo: { headers: this.options?.headers ?? {} },
+          requestInfo: { headers: this.options ?.headers ?? {} },
         });
-        this.onmessage?.(message, {
+        this.onmessage ?.(message, {
           // sessionId: message.sessionId,
           //@ts-ignore
-          requestInfo: { headers: this.options?.headers ?? {} },
+          requestInfo: { headers: this.options ?.headers ?? {} },
         });
       };
     });
   }
 
   async close(): Promise<void> {
-    this._socket?.close();
+    this._socket ?.close();
   }
 
   send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
@@ -147,7 +142,7 @@ export class WebSocketClientTransport implements Transport {
         reject(new Error("WebSocket is not open"));
         return;
       }
-      this._socket?.send(
+      this._socket ?.send(
         JSON.stringify(
           Object.assign(message, {
             // sessionId: options?.relatedRequestId ?? this.sessionId,
@@ -162,3 +157,4 @@ export class WebSocketClientTransport implements Transport {
     });
   }
 }
+
