@@ -11,6 +11,19 @@ import type { ClientRequestArgs } from "http";
 import { v4 as uuid } from "uuid";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
+export type WebSocketClientOptions =
+  & (WebSocket.ClientOptions | ClientRequestArgs)
+  & {
+    protocols?: string | string[];
+    onError?: (error: Error) => void;
+    onClose?: (socket: WebSocket) => void;
+    onOpen?: (socket: WebSocket) => void;
+    onMessage?: (
+      message: JSONRPCMessage,
+      //@ts-ignore
+      extra?: MessageExtraInfo,
+    ) => void;
+  };
 
 /**
  * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
@@ -25,15 +38,10 @@ export class WebSocketClientTransport implements Transport {
   onmessage?: (
     message: JSONRPCMessage,
     //@ts-ignore
-    extra?: MessageExtraInfo & { sessionId: string },
+    extra?: MessageExtraInfo,
   ) => void;
 
-  constructor(
-    public url: URL,
-    public options?: (WebSocket.ClientOptions | ClientRequestArgs) & {
-      protocols?: string | string[];
-    },
-  ) {
+  constructor(public url: URL, public options?: WebSocketClientOptions) {
     this._url = url;
   }
 
@@ -57,45 +65,57 @@ export class WebSocketClientTransport implements Transport {
           : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
+        this.options?.onError?.(error);
       };
 
       this._socket.onopen = () => {
+        //@ts-ignore
+        this.options?.onOpen?.(this._socket);
         resolve();
       };
 
       this._socket.onclose = () => {
         this.onclose?.();
+        //@ts-ignore
+        this.options?.onClose?.(this._socket);
       };
 
       this._socket.onmessage = (event: WebSocket.MessageEvent) => {
+        console.log("WebSocketClientTransport message", event.data.toString());
         try {
           if (typeof event.data !== "string") {
             throw new Error("WebSocket message must be a string");
           }
-        } catch (error) {
+        } catch (error: any) {
           this.onerror?.(error as Error);
+          this.options?.onError?.(error);
           return;
         }
 
-        let message: JSONRPCMessage & { sessionId: string };
+        let message: JSONRPCMessage;
         try {
           message = Object.assign(
             JSONRPCMessageSchema.parse(JSON.parse(event.data)),
-            { sessionId: JSON.parse(event.data).sessionId },
+            // { sessionId: JSON.parse(event.data).sessionId }
           );
-          if (
-            message?.sessionId !== undefined &&
-            message?.sessionId !== this.sessionId
-          ) {
-            this.sessionId = message.sessionId;
-          }
-        } catch (error) {
+          // if (
+          //   message?.sessionId !== undefined &&
+          //   message?.sessionId !== this.sessionId
+          // ) {
+          //   this.sessionId = message.sessionId;
+          // }
+        } catch (error: any) {
           this.onerror?.(error as Error);
+          this.options?.onError?.(error);
           return;
         }
-
+        this.options?.onMessage?.(message, {
+          // sessionId: message.sessionId,
+          //@ts-ignore
+          requestInfo: { headers: this.options?.headers ?? {} },
+        });
         this.onmessage?.(message, {
-          sessionId: message.sessionId,
+          // sessionId: message.sessionId,
           //@ts-ignore
           requestInfo: { headers: this.options?.headers ?? {} },
         });
@@ -117,7 +137,7 @@ export class WebSocketClientTransport implements Transport {
       this._socket?.send(
         JSON.stringify(
           Object.assign(message, {
-            sessionId: options?.relatedRequestId ?? this.sessionId,
+            // sessionId: options?.relatedRequestId ?? this.sessionId,
           }),
         ),
       );

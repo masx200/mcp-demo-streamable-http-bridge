@@ -3,10 +3,10 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { McpServerConfig } from "./main.js";
 import { WebSocketClientTransport } from "./WebSocketClientTransport.js";
-
+import { WebSocket } from "ws";
 // 根据McpServerConfig选择合适的transport
 export function selectTransport(
-  serverConfig: McpServerConfig,
+  serverConfig: McpServerConfig
 ):
   | StdioClientTransport
   | SSEClientTransport
@@ -56,10 +56,7 @@ export function selectTransport(
     serverConfig.url &&
     (serverConfig.type == "ws" || serverConfig.transport == "ws")
   ) {
-    return new WebSocketClientTransport(new URL(serverConfig.url), {
-      headers: serverConfig.headers,
-      protocols: serverConfig.protocols,
-    });
+    return createWebSocketClientTransport(serverConfig);
   }
   // 如果配置了wsUrl，使用WebSocket transport
   if (
@@ -72,10 +69,7 @@ export function selectTransport(
     }
     // 注意：WebSocketClientTransport需要从websocket.ts导入
     // 这里假设WebSocketClientTransport的构造函数接受URL和headers
-    return new WebSocketClientTransport(new URL(serverConfig.wsUrl), {
-      headers: serverConfig.headers,
-      protocols: serverConfig.protocols,
-    });
+    return createWebSocketClientTransport(serverConfig);
   }
   if (
     serverConfig.url &&
@@ -101,8 +95,8 @@ export function selectTransport(
           return new StdioClientTransport({
             command: serverConfig.command,
             args: serverConfig.args,
-            cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD ||
-              process.cwd(),
+            cwd:
+              serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
             env: Object.assign({}, serverConfig.env, process.env) as
               | Record<string, string>
               | undefined,
@@ -120,12 +114,8 @@ export function selectTransport(
 
       case "ws":
         if (serverConfig.wsUrl) {
-          return new WebSocketClientTransport(new URL(serverConfig.wsUrl), {
-            headers: serverConfig.headers,
-            protocols: serverConfig.protocols,
-          });
+          return createWebSocketClientTransport(serverConfig);
         }
-        break;
 
       case "http":
         const url = serverConfig.httpUrl || serverConfig.url;
@@ -140,4 +130,27 @@ export function selectTransport(
 
   // 如果没有匹配的配置，返回null
   return null;
+}
+export function createWebSocketClientTransport(serverConfig: McpServerConfig) {
+  return new WebSocketClientTransport(
+    new URL(String(serverConfig.url ?? serverConfig.wsUrl)),
+    {
+      headers: serverConfig.headers,
+
+      protocols: serverConfig.protocols,
+
+      onError: (error) => {
+        console.error("WebSocketClientTransport error", error);
+      },
+      onClose: (socket: WebSocket) => {
+        console.log("WebSocketClientTransport closed", socket.url);
+      },
+      onOpen: (socket: WebSocket) => {
+        console.log("WebSocketClientTransport opened", socket.url);
+      },
+      onMessage: (message) => {
+        console.log("WebSocketClientTransport message", message);
+      },
+    }
+  );
 }
