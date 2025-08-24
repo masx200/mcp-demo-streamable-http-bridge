@@ -1,7 +1,11 @@
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import type {
+  Transport,
+  TransportSendOptions,
+} from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   type JSONRPCMessage,
   JSONRPCMessageSchema,
+  type MessageExtraInfo,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ClientRequestArgs } from "http";
 import { v4 as uuid } from "uuid";
@@ -17,13 +21,17 @@ export class WebSocketClientTransport implements Transport {
   sessionId = uuid();
   onclose?: () => void;
   onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage) => void;
+  //@ts-ignore
+  onmessage?: (
+    message: JSONRPCMessage,
+    extra?: MessageExtraInfo & { sessionId: string }
+  ) => void;
 
   constructor(
     public url: URL,
     public options?: (WebSocket.ClientOptions | ClientRequestArgs) & {
       protocols?: string | string[];
-    },
+    }
   ) {
     this._url = url;
   }
@@ -31,7 +39,7 @@ export class WebSocketClientTransport implements Transport {
   start(): Promise<void> {
     if (this._socket) {
       throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically."
       );
     }
 
@@ -39,13 +47,14 @@ export class WebSocketClientTransport implements Transport {
       this._socket = new WebSocket(
         this._url,
         this.options?.protocols ?? SUBPROTOCOL,
-        this.options,
+        this.options
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error = "error" in event
-          ? (event.error as Error)
-          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error =
+          "error" in event
+            ? (event.error as Error)
+            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
       };
@@ -72,7 +81,7 @@ export class WebSocketClientTransport implements Transport {
         try {
           message = Object.assign(
             JSONRPCMessageSchema.parse(JSON.parse(event.data)),
-            { sessionId: JSON.parse(event.data).sessionId },
+            { sessionId: JSON.parse(event.data).sessionId }
           );
           if (
             message?.sessionId !== undefined &&
@@ -85,7 +94,11 @@ export class WebSocketClientTransport implements Transport {
           return;
         }
 
-        this.onmessage?.(message);
+        this.onmessage?.(message, {
+          sessionId: message.sessionId,
+          //@ts-ignore
+          requestInfo: { headers: this.options?.headers ?? {} },
+        });
       };
     });
   }
@@ -94,7 +107,7 @@ export class WebSocketClientTransport implements Transport {
     this._socket?.close();
   }
 
-  send(message: JSONRPCMessage): Promise<void> {
+  send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this._socket) {
         reject(new Error("Not connected"));
@@ -102,7 +115,11 @@ export class WebSocketClientTransport implements Transport {
       }
 
       this._socket?.send(
-        JSON.stringify(Object.assign(message, { sessionId: this.sessionId })),
+        JSON.stringify(
+          Object.assign(message, {
+            sessionId: options?.relatedRequestId ?? this.sessionId,
+          })
+        )
       );
       resolve();
     });
