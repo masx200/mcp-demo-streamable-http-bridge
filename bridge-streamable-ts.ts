@@ -720,8 +720,17 @@ function authenticateToken(
 
   next();
 }
+
+import { dirname ,join} from "node:path"
+import { fileURLToPath } from "node:url"
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
+
 //@ts-ignore
-const packageJson = await fs.promises.readFile("./package.json", {
+const packageJson = await fs.promises.readFile(join(__dirname,"./package.json"), {
   encoding: "utf-8",
 });
 const packageJsonObj = JSON.parse(packageJson);
