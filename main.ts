@@ -72,7 +72,16 @@ export interface ServerInstance {
 
 // 默认配置
 export const DEFAULT_CONFIG: Config = {
+  sseServer: {
+    enabled: true,
+    endpoint: "/sse",
+    messageEndpoint: "/messages",
+  },
   enableHttpServer: true,
+  wsServer: {
+    enabled: true,
+    pathPrefix: "/ws",
+  },
   pathPrefix: "/mcp",
   hotReload: false,
   version: false,
@@ -196,9 +205,9 @@ async function reloadConfiguration() {
 
   const envConfig = loadEnvConfig();
 
-  console.log(JSON.stringify(cliConfig, null, 4));
-  console.log(JSON.stringify(fileConfig, null, 4));
-  console.log(JSON.stringify(envConfig, null, 4));
+  // console.log(JSON.stringify(cliConfig, null, 4));
+  // console.log(JSON.stringify(fileConfig, null, 4));
+  // console.log(JSON.stringify(envConfig, null, 4));
 
   config = mergeConfigs(cliConfig, fileConfig, envConfig);
 
@@ -289,9 +298,9 @@ async function main() {
   const fileConfig = loadConfigFile(configFilePath);
   const envConfig = loadEnvConfig();
 
-  console.log(JSON.stringify(cliConfig, null, 4));
-  console.log(JSON.stringify(fileConfig, null, 4));
-  console.log(JSON.stringify(envConfig, null, 4));
+  // console.log(JSON.stringify(cliConfig, null, 4));
+  // console.log(JSON.stringify(fileConfig, null, 4));
+  // console.log(JSON.stringify(envConfig, null, 4));
 
   config = mergeConfigs(cliConfig, fileConfig, envConfig);
 
@@ -526,6 +535,8 @@ async function main() {
 
     if (config.apiKey) {
       console.log(`🔒 API Key authentication enabled`);
+    }else{
+      console.log(`🔒 API Key authentication disabled`);
     }
 
     if (config.hotReload) {
@@ -539,11 +550,14 @@ async function main() {
     );
 
     // 打印所有MCP HTTP端点
-    console.log("🌐 Available MCP HTTP endpoints:");
-    for (const [key] of servers) {
-      const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
-      const encodedEndpoint = endpoint;
-      console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+
+    if (config.enableHttpServer) {
+      console.log("🌐 Available MCP HTTP endpoints:");
+      for (const [key] of servers) {
+        const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
+        const encodedEndpoint = endpoint;
+        console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+      }
     }
 
     if (config.sseServer && config.sseServer.enabled) {

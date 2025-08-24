@@ -14,7 +14,16 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
 // 默认配置
 export const DEFAULT_CONFIG = {
+    sseServer: {
+        enabled: true,
+        endpoint: "/sse",
+        messageEndpoint: "/messages",
+    },
     enableHttpServer: true,
+    wsServer: {
+        enabled: true,
+        pathPrefix: "/ws",
+    },
     pathPrefix: "/mcp",
     hotReload: false,
     version: false,
@@ -125,9 +134,9 @@ async function reloadConfiguration() {
     const cliConfig = parseCommandLineArgs();
     const fileConfig = loadConfigFile(configFilePath);
     const envConfig = loadEnvConfig();
-    console.log(JSON.stringify(cliConfig, null, 4));
-    console.log(JSON.stringify(fileConfig, null, 4));
-    console.log(JSON.stringify(envConfig, null, 4));
+    // console.log(JSON.stringify(cliConfig, null, 4));
+    // console.log(JSON.stringify(fileConfig, null, 4));
+    // console.log(JSON.stringify(envConfig, null, 4));
     config = mergeConfigs(cliConfig, fileConfig, envConfig);
     console.log("📋 Configuration reloaded:", JSON.stringify(config, null, 2));
     // 重新设置配置监听
@@ -195,9 +204,9 @@ async function main() {
     // 加载配置
     const fileConfig = loadConfigFile(configFilePath);
     const envConfig = loadEnvConfig();
-    console.log(JSON.stringify(cliConfig, null, 4));
-    console.log(JSON.stringify(fileConfig, null, 4));
-    console.log(JSON.stringify(envConfig, null, 4));
+    // console.log(JSON.stringify(cliConfig, null, 4));
+    // console.log(JSON.stringify(fileConfig, null, 4));
+    // console.log(JSON.stringify(envConfig, null, 4));
     config = mergeConfigs(cliConfig, fileConfig, envConfig);
     console.log("📋 Configuration:", JSON.stringify(config, null, 2));
     // 设置配置文件监听
@@ -391,16 +400,21 @@ async function main() {
         if (config.apiKey) {
             console.log(`🔒 API Key authentication enabled`);
         }
+        else {
+            console.log(`🔒 API Key authentication disabled`);
+        }
         if (config.hotReload) {
             console.log(`🔄 Hot reload enabled`);
         }
         console.log(`📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(", ")}`);
         // 打印所有MCP HTTP端点
-        console.log("🌐 Available MCP HTTP endpoints:");
-        for (const [key] of servers) {
-            const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
-            const encodedEndpoint = endpoint;
-            console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+        if (config.enableHttpServer) {
+            console.log("🌐 Available MCP HTTP endpoints:");
+            for (const [key] of servers) {
+                const endpoint = `${pathPrefix}/${encodeURIComponent(key)}`;
+                const encodedEndpoint = endpoint;
+                console.log(key, `   http://${host}:${port}${encodedEndpoint}`);
+            }
         }
         if (config.sseServer && config.sseServer.enabled) {
             console.log("🌐 Available MCP SSE endpoints:");
