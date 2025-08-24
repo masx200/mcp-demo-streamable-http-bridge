@@ -119,7 +119,7 @@ export class WebSocketServerTransport implements Transport {
   //@ts-ignore
   onmessage?: (
     message: JSONRPCMessage & { sessionId: string },
-    extra?: MessageExtraInfo
+    extra?: MessageExtraInfo & { sessionId: string }
   ) => void;
   setProtocolVersion?: (version: string) => void;
 
@@ -192,7 +192,11 @@ export class WebSocketServerTransport implements Transport {
         const authInfo: AuthInfo | undefined = undefined;
         const requestInfo: RequestInfo = { headers: req.headers };
 
-        this.onmessage?.(msg, { authInfo, requestInfo });
+        this.onmessage?.(msg, {
+          authInfo,
+          requestInfo,
+          sessionId: msg.sessionId,
+        });
       });
 
       ws.on("close", () => {
