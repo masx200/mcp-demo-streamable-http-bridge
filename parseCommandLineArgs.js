@@ -11,7 +11,7 @@ export function parseCommandLineArgs() {
         .option("version", {
         type: "boolean",
         description: "Show version information",
-    })
+    }).alias("version", "v")
         .option("config", {
         type: "string",
         description: "Path to configuration file",
