@@ -5,7 +5,7 @@ import type {
 import {
   type JSONRPCMessage,
   JSONRPCMessageSchema,
-  type MessageExtraInfo
+  type MessageExtraInfo,
 } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
 import { v4 as uuid } from "uuid";
@@ -60,7 +60,7 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
   onMessage?: (
     message: JSONRPCMessage,
     //@ts-ignore
-    extra?: MessageExtraInfo
+    extra?: MessageExtraInfo,
   ) => void;
   /**
    * List of allowed origin header values for DNS rebinding protection.
@@ -108,42 +108,56 @@ export class WebSocketServerTransport implements Transport {
   constructor(
     public ws: WebSocket,
     public request: IncomingMessage,
-    public options: WebSocketServerTransportOptions
+    public options: WebSocketServerTransportOptions,
   ) {
     this.ws = ws;
     this.request = request;
   }
   async start(): Promise<void> {
-    //@ts-ignore
-    this.options.onsessioninitialized(this.sessionId);
-    this.options.onOpen?.(this.ws);
-    this.options.onConnection?.(this.ws);
-    this.ws.on("error", (error) => {
-      this.onerror?.(error);
-      this.options.onError?.(error);
-    });
-    this.ws.on("close", () => {
-      this.onclose?.();
+    return new Promise((resolve, reject) => {
       //@ts-ignore
-      this.options.onsessionclosed(this.sessionId);
-      this.options.onClose?.(this.ws);
+      this.options.onsessioninitialized(this.sessionId);
+      this.options.onOpen?.(this.ws);
+      this.options.onConnection?.(this.ws);
+      this.ws.on("error", (error) => {
+        this.onerror?.(error);
+        this.options.onError?.(error);
+        reject(error);
+      });
+      this.ws.on("close", () => {
+        this.onclose?.();
+        //@ts-ignore
+        this.options.onsessionclosed(this.sessionId);
+        this.options.onClose?.(this.ws);
+      });
+      this.ws.on("message", (data) => {
+        const message = JSONRPCMessageSchema.parse(JSON.parse(data.toString()));
+        this.onmessage?.(message);
+        this.options.onMessage?.(message);
+      });
+      this.ws.on("open", () => {
+        resolve();
+        this.options.onOpen?.(this.ws);
+      });
     });
-    this.ws.on("message", (data) => {
-      const message = JSONRPCMessageSchema.parse(JSON.parse(data.toString()));
-      this.onmessage?.(message);
-      this.options.onMessage?.(message);
-    });
+    //@ts-ignore
   }
   async send(
     message: JSONRPCMessage,
-    options?: TransportSendOptions | undefined
+    options?: TransportSendOptions | undefined,
   ): Promise<void> {
-    console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
+    console.log(
+      "WebSocketServerTransport send",
+      JSON.stringify(message, null, 4),
+    );
     if (this.ws.readyState !== WebSocket.OPEN) {
       throw new Error("WebSocket is not open");
     }
     this.ws.send(JSON.stringify(message));
-    console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
+    console.log(
+      "WebSocketServerTransport send",
+      JSON.stringify(message, null, 4),
+    );
   }
   async close(): Promise<void> {
     this.ws.close();

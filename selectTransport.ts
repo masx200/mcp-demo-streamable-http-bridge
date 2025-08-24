@@ -149,7 +149,10 @@ export function createWebSocketClientTransport(serverConfig: McpServerConfig) {
         console.log("WebSocketClientTransport opened", socket.url);
       },
       onMessage: (message) => {
-        console.log("WebSocketClientTransport message", JSON.stringify(message, null, 4));
+        console.log(
+          "WebSocketClientTransport message",
+          JSON.stringify(message, null, 4),
+        );
       },
     },
   );

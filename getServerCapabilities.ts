@@ -4,7 +4,7 @@ import { type ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 // 获取服务器能力
 
 export async function getServerCapabilities(
-  client: Client
+  client: Client,
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();

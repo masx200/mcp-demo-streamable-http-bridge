@@ -11,20 +11,22 @@ import type { ClientRequestArgs } from "http";
 import { v4 as uuid } from "uuid";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
-export type WebSocketClientOptions = (
-  | WebSocket.ClientOptions
-  | ClientRequestArgs
-) & {
-  protocols?: string | string[];
-  onError?: (error: Error) => void;
-  onClose?: (socket: WebSocket) => void;
-  onOpen?: (socket: WebSocket) => void;
-  onMessage?: (
-    message: JSONRPCMessage,
-    //@ts-ignore
-    extra?: MessageExtraInfo
-  ) => void;
-};
+export type WebSocketClientOptions =
+  & (
+    | WebSocket.ClientOptions
+    | ClientRequestArgs
+  )
+  & {
+    protocols?: string | string[];
+    onError?: (error: Error) => void;
+    onClose?: (socket: WebSocket) => void;
+    onOpen?: (socket: WebSocket) => void;
+    onMessage?: (
+      message: JSONRPCMessage,
+      //@ts-ignore
+      extra?: MessageExtraInfo,
+    ) => void;
+  };
 
 /**
  * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
@@ -39,17 +41,17 @@ export class WebSocketClientTransport implements Transport {
   onmessage?: (
     message: JSONRPCMessage,
     //@ts-ignore
-    extra?: MessageExtraInfo
+    extra?: MessageExtraInfo,
   ) => void;
 
   constructor(public url: URL, public options?: WebSocketClientOptions) {
     this._url = url;
   }
 
-async  start(): Promise<void> {
+  async start(): Promise<void> {
     if (this._socket) {
       throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically."
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
       );
     }
 
@@ -57,14 +59,13 @@ async  start(): Promise<void> {
       this._socket = new WebSocket(
         this._url,
         this.options?.protocols ?? SUBPROTOCOL,
-        this.options
+        this.options,
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error =
-          "error" in event
-            ? (event.error as Error)
-            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error = "error" in event
+          ? (event.error as Error)
+          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
         this.options?.onError?.(error);
@@ -97,7 +98,7 @@ async  start(): Promise<void> {
         let message: JSONRPCMessage;
         try {
           message = Object.assign(
-            JSONRPCMessageSchema.parse(JSON.parse(event.data))
+            JSONRPCMessageSchema.parse(JSON.parse(event.data)),
             // { sessionId: JSON.parse(event.data).sessionId }
           );
 
@@ -132,7 +133,10 @@ async  start(): Promise<void> {
   }
 
   send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
-    console.log("send WebSocketClientTransport",JSON.stringify(message,null,4));
+    console.log(
+      "send WebSocketClientTransport",
+      JSON.stringify(message, null, 4),
+    );
     return new Promise((resolve, reject) => {
       if (!this._socket) {
         reject(new Error("Not connected"));
@@ -146,10 +150,13 @@ async  start(): Promise<void> {
         JSON.stringify(
           Object.assign(message, {
             // sessionId: options?.relatedRequestId ?? this.sessionId,
-          })
-        )
+          }),
+        ),
       );
-      console.log("send WebSocketClientTransport",JSON.stringify(message,null,4));
+      console.log(
+        "send WebSocketClientTransport",
+        JSON.stringify(message, null, 4),
+      );
       resolve();
     });
   }

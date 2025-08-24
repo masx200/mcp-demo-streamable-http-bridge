@@ -163,7 +163,7 @@ async function initializeServers(config: Config) {
       !Object.keys(serverConfig).includes("sseUrl")
     ) {
       throw new Error(
-        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file"
+        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file",
       );
     }
     try {
@@ -225,7 +225,7 @@ const packageJson = await fs.promises.readFile(
   join(__dirname, "./package.json"),
   {
     encoding: "utf-8",
-  }
+  },
 );
 const packageJsonObj = JSON.parse(packageJson);
 // 主函数
@@ -274,7 +274,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    })
+    }),
   );
 
   app.use(express.json());
@@ -289,7 +289,7 @@ async function main() {
       console.log(
         "registering pathPrefix",
         pathPrefix + "/" + key,
-        pathPrefix + "/" + encodeURIComponent(key)
+        pathPrefix + "/" + encodeURIComponent(key),
       );
       app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
         const sessionId = req.headers["mcp-session-id"] as string;
@@ -328,8 +328,8 @@ async function main() {
               console.log(`Session closed: ${transport.sessionId}`);
               transports.delete(transport.sessionId);
               serverInstance.httpTransports ??= [];
-              serverInstance.httpTransports =
-                serverInstance.httpTransports.filter((t) => t !== transport);
+              serverInstance.httpTransports = serverInstance.httpTransports
+                .filter((t) => t !== transport);
             }
           };
 
@@ -354,7 +354,7 @@ async function main() {
             console.log(
               "already Initialized  MCP server",
               serverName,
-              serverConfig
+              serverConfig,
             );
           }
 
@@ -405,7 +405,7 @@ async function main() {
             console.log(
               "Initializing MCP server for SSE",
               serverName,
-              serverConfig
+              serverConfig,
             );
             const instance = await createMcpServer(serverName, serverConfig);
             serverInstance.server = instance.server;
@@ -416,7 +416,7 @@ async function main() {
           // 创建SSE传输
           const sseTransport = new SSEServerTransport(
             messageEndpoint + `/${encodeURIComponent(key)}`,
-            res
+            res,
           );
           serverInstance.sseTransports ??= [];
           serverInstance.sseTransports.push(sseTransport);
@@ -427,8 +427,8 @@ async function main() {
           // 设置响应关闭时的清理逻辑
           res.on("close", () => {
             if (serverInstance.sseTransports?.includes(sseTransport)) {
-              serverInstance.sseTransports =
-                serverInstance.sseTransports.filter((t) => t !== sseTransport);
+              serverInstance.sseTransports = serverInstance.sseTransports
+                .filter((t) => t !== sseTransport);
             }
             sseTransports.delete(sseTransport.sessionId);
             console.log(`SSE session closed: ${sseTransport.sessionId}`);
@@ -466,7 +466,7 @@ async function main() {
               res.status(500).json({ error: "Internal server error" });
             }
           }
-        }
+        },
       );
     }
   }
@@ -479,7 +479,7 @@ async function main() {
   const server = createServer(
     (request: IncomingMessage, response: ServerResponse) => {
       app(request, response);
-    }
+    },
   );
 
   function validateBearerToken(token: string) {
@@ -524,10 +524,10 @@ async function main() {
       }
 
       const mcpservername = request.url?.substring(
-        (config.wsServer?.pathPrefix ?? "/ws").length + 1
+        (config.wsServer?.pathPrefix ?? "/ws").length + 1,
       );
-      const mcpserverconfig =
-        config.mcpServers?.[decodeURIComponent(mcpservername)];
+      const mcpserverconfig = config.mcpServers
+        ?.[decodeURIComponent(mcpservername)];
       if (!mcpserverconfig) {
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
         socket.destroy();
@@ -553,13 +553,13 @@ async function main() {
         console.log(
           "already Initialized  MCP server",
           serverName,
-          serverConfig
+          serverConfig,
         );
       }
 
       const options: WebSocketServerTransportOptions = {
         onMessage(message) {
-          console.log("wsTransport message",JSON.stringify(message,null,4));
+          console.log("wsTransport message", JSON.stringify(message, null, 4));
         },
         onError(error) {
           console.error("wsTransport error", error);
@@ -580,26 +580,25 @@ async function main() {
         onConnection: (socket) => {
           console.log("wsTransport connected", socket.url);
         },
-        path:
-          (config.wsServer?.pathPrefix ?? "/ws") +
+        path: (config.wsServer?.pathPrefix ?? "/ws") +
           "/" +
           encodeURIComponent(serverName),
         noServer: true,
         verifyClient: !(config.apiKey ?? process.env.HTTP_API_TOKEN)
           ? undefined
           : async function (info, callback) {
-              const request = info.req as IncomingMessage;
-              const authHeader = request.headers["authorization"];
-              if (!authHeader || !authHeader.startsWith("Bearer ")) {
-                console.log("no authHeader,verifyClient failed");
-                callback(false);
-                return;
-              }
-              const token = authHeader.slice("Bearer ".length);
-              const result = validateBearerToken(token);
-              console.log("verifyClient result", result);
-              callback(result);
-            },
+            const request = info.req as IncomingMessage;
+            const authHeader = request.headers["authorization"];
+            if (!authHeader || !authHeader.startsWith("Bearer ")) {
+              console.log("no authHeader,verifyClient failed");
+              callback(false);
+              return;
+            }
+            const token = authHeader.slice("Bearer ".length);
+            const result = validateBearerToken(token);
+            console.log("verifyClient result", result);
+            callback(result);
+          },
       };
       const wss = new WebSocketServer({ ...options });
 
@@ -653,7 +652,7 @@ async function main() {
     // }
     if (config.enableHttpServer) {
       console.log(
-        `🚀 MCP Bridge (stdio ↔ Streamable HTTP) \n listening on http://${host}:${port}${pathPrefix}`
+        `🚀 MCP Bridge (stdio ↔ Streamable HTTP) \n listening on http://${host}:${port}${pathPrefix}`,
       );
     }
     if (config.apiKey) {
@@ -667,18 +666,20 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
-        ", "
-      )}`
+      `📦 Configured MCP servers: ${
+        Object.keys(config.mcpServers || {}).join(
+          ", ",
+        )
+      }`,
     );
 
     // 打印所有MCP HTTP端点
     if (config.wsServer?.enabled) {
       console.log("🌐 Available MCP ws endpoints:");
       for (const [key] of servers) {
-        const endpoint = `${
-          config.wsServer?.pathPrefix ?? "/ws"
-        }/${encodeURIComponent(key)}`;
+        const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${
+          encodeURIComponent(key)
+        }`;
         const encodedEndpoint = endpoint;
         console.log(key, `\n   http://${host}:${port}${encodedEndpoint}`);
       }
@@ -699,14 +700,18 @@ async function main() {
       for (const [key] of servers) {
         console.log(
           key,
-          `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
-            key
-          )}`,
+          `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${
+            encodeURIComponent(
+              key,
+            )
+          }`,
           "\n",
           key,
-          `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
-            key
-          )}`
+          `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${
+            encodeURIComponent(
+              key,
+            )
+          }`,
         );
       }
     }
