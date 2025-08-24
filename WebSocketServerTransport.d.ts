@@ -1,7 +1,8 @@
 import type { Transport, TransportSendOptions } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { type JSONRPCMessage, type MessageExtraInfo } from "@modelcontextprotocol/sdk/types.js";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket } from "ws";
 import type { ServerOptions } from "ws";
+import type { IncomingMessage } from "node:http";
 /**
  * Configuration options for WebSocketServerTransport
  */
@@ -85,44 +86,17 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
  * - No session validation is performed
  */
 export declare class WebSocketServerTransport implements Transport {
+    ws: WebSocket;
+    request: IncomingMessage;
     options: WebSocketServerTransportOptions;
-    socket: WebSocket | undefined;
-    private callback;
-    get wss(): WebSocketServer | undefined;
-    private sessionIdGenerator;
-    private _started;
-    private _clients;
-    private _initialized;
-    private _wss?;
-    private _onsessioninitialized?;
-    private _onsessionclosed?;
-    private _allowedOrigins?;
-    private _enableDnsRebindingProtection;
-    private _onConnection?;
-    sessionId?: string;
-    onclose?: () => void;
-    onerror?: (error: Error) => void;
-    onmessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo) => void;
-    setProtocolVersion?: (version: string) => void;
-    constructor(callback: (wss: WebSocketServer) => Promise<void>, options?: WebSocketServerTransportOptions);
-    /**
-     * Starts the transport. This is required by the Transport interface.
-     */
+    constructor(ws: WebSocket, request: IncomingMessage, options: WebSocketServerTransportOptions);
     start(): Promise<void>;
-    /**
-     * Validates WebSocket request headers for DNS rebinding protection.
-     * @returns Error message if validation fails, undefined if validation passes.
-     */
-    validateWebSocketRequest(req: any): Error | undefined;
-    /**
-     * Sends a message through the WebSocket transport
-     */
-    send(message: JSONRPCMessage & {
-        sessionId: string;
-    }, options?: TransportSendOptions): Promise<void>;
-    /**
-     * Closes the transport and cleans up resources
-     */
+    send(message: JSONRPCMessage, options?: TransportSendOptions | undefined): Promise<void>;
     close(): Promise<void>;
+    onclose?: (() => void) | undefined;
+    onerror?: ((error: Error) => void) | undefined;
+    onmessage?: ((message: JSONRPCMessage, extra?: MessageExtraInfo | undefined) => void) | undefined;
+    sessionId?: string | undefined;
+    setProtocolVersion?: ((version: string) => void) | undefined;
 }
 //# sourceMappingURL=WebSocketServerTransport.d.ts.map

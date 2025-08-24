@@ -19,7 +19,8 @@ import { createMcpServer } from "./createMcpServer.js";
 import { mergeConfigs } from "./mergeConfigs.js";
 import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import { WebSocketServerTransport } from "./WebSocketServerTransport.js";
+import { WebSocketServerTransport, } from "./WebSocketServerTransport.js";
+import { WebSocketServer } from "ws";
 const wsservertransports = new Set();
 // 默认配置
 export const DEFAULT_CONFIG = {
@@ -437,14 +438,7 @@ async function main() {
             else {
                 console.log("already Initialized  MCP server", serverName, serverConfig);
             }
-            const wsTransport = new WebSocketServerTransport(async (wss) => {
-                return new Promise((resolve, reject) => {
-                    wss.handleUpgrade(request, socket, head, (ws) => {
-                        wss.emit("connection", ws, request);
-                        resolve();
-                    });
-                });
-            }, {
+            const options = {
                 onMessage(message) {
                     console.log("wsTransport message", message);
                 },
@@ -462,6 +456,7 @@ async function main() {
                 },
                 onClose: (socket) => {
                     console.log("wsTransport closed", socket.url);
+                    wss.close();
                 },
                 onConnection: (socket) => {
                     console.log("wsTransport connected", socket.url);
@@ -485,25 +480,35 @@ async function main() {
                         console.log("verifyClient result", result);
                         callback(result);
                     },
+            };
+            const wss = new WebSocketServer({ port, host, ...options });
+            wss.on("error", (error) => {
+                console.error("WebSocketServerTransport error", error);
             });
-            console.log("wsserverTransport", wsTransport);
-            if (!wsTransport) {
-                throw new Error("wsTransport is not defined");
-            }
-            const mcpserverinstance = serverInstance.server;
-            if (!mcpserverinstance) {
-                throw new Error("mcpserverinstance is not defined");
-            }
-            const wss = wsTransport.wss;
-            if (!wss) {
-                throw new Error("wss is not defined");
-            }
-            //@ts-ignore
-            await mcpserverinstance.connect(wsTransport);
-            console.log("mcpserverinstance connect", mcpserverinstance);
-            console.log("wsTransport connected", wsTransport);
-            wsservertransports.add(wsTransport);
-            console.log("wsTransport connected", wsTransport.sessionId);
+            wss.on("connection", (ws, request) => {
+                const wsTransport = new WebSocketServerTransport(ws, request, options);
+                console.log("wsserverTransport", wsTransport);
+                if (!wsTransport) {
+                    throw new Error("wsTransport is not defined");
+                }
+                const mcpserverinstance = serverInstance.server;
+                if (!mcpserverinstance) {
+                    throw new Error("mcpserverinstance is not defined");
+                }
+                // const wss = wsTransport.wss;
+                // if (!wss) {
+                //   throw new Error("wss is not defined");
+                // }
+                //@ts-ignore
+                await mcpserverinstance.connect(wsTransport);
+                console.log("mcpserverinstance connect", mcpserverinstance);
+                console.log("wsTransport connected", wsTransport);
+                wsservertransports.add(wsTransport);
+                console.log("wsTransport connected", wsTransport.sessionId);
+            });
+            wss.handleUpgrade(request, socket, head, (ws) => {
+                wss.emit("connection", ws, request);
+            });
         }
         catch (error) {
             console.error("wsTransport error", error);
