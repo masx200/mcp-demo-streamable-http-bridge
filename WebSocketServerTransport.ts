@@ -82,11 +82,4 @@ export class WebSocketServerTransport
     this.onclose?.();
     this.emit("close");
   }
-
-  /* ---------- 辅助方法 ---------- */
-
-  /** 当前活跃连接数（方便调试） */
-  get connectionCount(): number {
-    return this.wss?.clients.size ?? 0;
-  }
 }
