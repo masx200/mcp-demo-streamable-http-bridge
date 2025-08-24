@@ -15,7 +15,5 @@ export declare class WebSocketServerTransport extends EventEmitter implements Tr
     start(): Promise<void>;
     send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void>;
     close(): Promise<void>;
-    /** 当前活跃连接数（方便调试） */
-    get connectionCount(): number;
 }
 //# sourceMappingURL=WebSocketServerTransport.d.ts.map

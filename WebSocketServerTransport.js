@@ -59,10 +59,5 @@ export class WebSocketServerTransport extends EventEmitter {
         this.onclose?.();
         this.emit("close");
     }
-    /* ---------- 辅助方法 ---------- */
-    /** 当前活跃连接数（方便调试） */
-    get connectionCount() {
-        return this.wss?.clients.size ?? 0;
-    }
 }
 //# sourceMappingURL=WebSocketServerTransport.js.map
