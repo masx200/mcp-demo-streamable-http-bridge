@@ -2,7 +2,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { McpServerConfig } from "./main.js";
-import { WebSocketClientTransport } from "./websocket.js";
+import { WebSocketClientTransport } from "./WebSocketClientTransport.js";
 
 // 根据McpServerConfig选择合适的transport
 export function selectTransport(

@@ -1,4 +1,3 @@
-import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -8,12 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-  GetPromptRequestSchema,
   isInitializeRequest,
-  ListPromptsRequestSchema,
-  ListResourcesRequestSchema,
-  ListResourceTemplatesRequestSchema,
-  ReadResourceRequestSchema,
   type ServerCapabilities,
 } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
@@ -22,7 +16,7 @@ import fs, { type StatWatcher } from "fs";
 import morgan from "morgan";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unwatchFile, watchFile } from "node:fs";
-import { WebSocketClientTransport } from "./websocket.js";
+import type { WebSocketClientTransport } from "./WebSocketClientTransport.js";
 export interface McpServerConfig {
   protocols?: string | string[];
   headers?: Record<string, string>;
@@ -119,8 +113,8 @@ function loadEnvConfig(): Partial<Config> {
 }
 
 // 获取服务器能力
-async function getServerCapabilities(
-  client: Client,
+export async function getServerCapabilities(
+  client: Client
 ): Promise<ServerCapabilities | undefined> {
   try {
     return await client.getServerCapabilities();
@@ -132,251 +126,6 @@ async function getServerCapabilities(
       prompts: {},
     };
   }
-}
-
-// 创建MCP服务器实例
-async function createMcpServer(
-  serverName: string,
-  serverConfig: McpServerConfig,
-): Promise<ServerInstance> {
-  // 使用selectTransport函数选择合适的transport
-  const transport = selectTransport(serverConfig);
-
-  if (!transport) {
-    throw new Error(
-      "Failed to create transport, please check the configuration.",
-    );
-  }
-
-  const client = new Client(
-    { name: `bridge-client-${serverName}`, version: "1.0.0" },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-      },
-    },
-  );
-
-  await client.connect(transport);
-  const capabilities = Object.assign({}, await getServerCapabilities(client));
-  console.log(`[${serverName}] capabilities:`, capabilities);
-
-  const listOutputs = {
-    tools: null as
-      | Awaited<ReturnType<typeof client.listTools>>
-      | undefined
-      | null,
-    prompts: null as
-      | Awaited<ReturnType<typeof client.listPrompts>>
-      | undefined
-      | null,
-    resources: null as
-      | Awaited<ReturnType<typeof client.listResources>>
-      | undefined
-      | null,
-    resourceTemplates: null as
-      | Awaited<ReturnType<typeof client.listResourceTemplates>>
-      | undefined
-      | null,
-  };
-
-  // 获取工具列表
-  try {
-    const tools = await client.listTools();
-    console.log(
-      `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4),
-    );
-    listOutputs.tools = tools;
-  } catch (error) {
-    console.error(`[${serverName}] Error listing tools:`, error);
-    capabilities.tools = undefined;
-  }
-
-  // 获取提示列表
-  try {
-    const prompts = await client.listPrompts();
-    console.log(
-      `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4),
-    );
-    listOutputs.prompts = prompts;
-  } catch (error) {
-    console.error(`[${serverName}] Error listing prompts:`, error);
-    capabilities.prompts = undefined;
-  }
-
-  // 获取资源列表
-  try {
-    const Resources = await client.listResources();
-    console.log(
-      `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4),
-    );
-    listOutputs.resources = Resources;
-  } catch (error) {
-    console.error(`[${serverName}] Error listing Resources:`, error);
-    capabilities.resources = undefined;
-
-    if (listOutputs.resources || listOutputs.resourceTemplates) {
-      capabilities.resources = {};
-    }
-  }
-  try {
-    const ResourcesTemplates = await client.listResourceTemplates();
-    console.log(
-      `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4),
-    );
-    listOutputs.resourceTemplates = ResourcesTemplates;
-  } catch (error) {
-    console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
-    capabilities.resources = undefined;
-    if (listOutputs.resources || listOutputs.resourceTemplates) {
-      capabilities.resources = {};
-    }
-  }
-  const server = new McpServer(
-    {
-      name: `bridge-service-${serverName}`,
-      version: "1.0.0",
-    },
-    {
-      capabilities: capabilities,
-    },
-  );
-
-  // 注册工具
-  try {
-    if (capabilities.tools && listOutputs.tools) {
-      const tools = listOutputs.tools;
-      await Promise.all(
-        tools.tools.map(async (tool) => {
-          console.log(
-            `[${serverName}] Registering tool: `,
-            JSON.stringify(
-              {
-                name: tool.name,
-                description: tool.description,
-                annotations: tool.annotations,
-              },
-              null,
-              4,
-            ),
-          );
-          //@ts-ignore
-          const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
-          const outputSchema = tool.outputSchema
-            //@ts-ignore
-            ? JSONSchemaToZod.convert(tool.outputSchema).shape
-            : tool.outputSchema;
-
-          server.registerTool(
-            tool.name,
-            {
-              description: tool.description,
-              annotations: tool.annotations,
-              ...tool,
-              inputSchema: inputSchema,
-              outputSchema,
-            },
-            //@ts-ignore
-            async (params: any) => {
-              console.log(
-                `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4),
-              );
-              const result = await client.callTool({
-                name: tool.name,
-                arguments: params,
-              });
-              return result;
-            },
-          );
-        }),
-      );
-    }
-  } catch (error) {
-    console.error(`[${serverName}] Error Registering tools:`, error);
-  }
-
-  // 注册提示
-  try {
-    if (capabilities.prompts && listOutputs.prompts) {
-      //@ts-ignore
-      server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-        console.log(`[${serverName}] Listing prompts...`);
-        return listOutputs.prompts;
-      });
-
-      server.server.setRequestHandler(
-        GetPromptRequestSchema,
-        async (request) => {
-          console.log(
-            `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4),
-          );
-          const result = await client.getPrompt(request.params);
-          return result;
-        },
-      );
-    }
-  } catch (error) {
-    console.error(`[${serverName}] Error Registering prompts:`, error);
-  }
-
-  // 注册资源
-  try {
-    if (capabilities.resources && listOutputs.resources) {
-      server.server.setRequestHandler(
-        ReadResourceRequestSchema,
-        async (request) => {
-          console.log(
-            `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4),
-          );
-          const result = await client.readResource(request.params);
-          return result;
-        },
-      );
-
-      server.server.setRequestHandler(
-        ListResourcesRequestSchema,
-        //@ts-ignore
-        async (request) => {
-          console.log(
-            `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4),
-          );
-          return listOutputs.resources;
-        },
-      );
-
-      server.server.setRequestHandler(
-        ListResourceTemplatesRequestSchema,
-        //@ts-ignore
-        async (request) => {
-          console.log(
-            `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4),
-          );
-          return listOutputs.resourceTemplates;
-        },
-      );
-    }
-  } catch (error) {
-    console.error(`[${serverName}] Error Registering Resources:`, error);
-  }
-
-  return {
-    config: serverConfig,
-    server,
-    client,
-    transport: transport,
-    httpTransports: null as any,
-  };
 }
 
 // 初始化所有MCP服务器
@@ -411,7 +160,7 @@ async function initializeServers(config: Config) {
       !Object.keys(serverConfig).includes("sseUrl")
     ) {
       throw new Error(
-        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file",
+        "url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file"
       );
     }
     try {
@@ -468,7 +217,7 @@ async function reloadConfiguration() {
 function authenticateToken(
   req: express.Request,
   res: express.Response,
-  next: express.NextFunction,
+  next: express.NextFunction
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
@@ -505,9 +254,9 @@ function authenticateToken(
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createMcpServer } from "./createMcpServer.js";
 import { mergeConfigs } from "./mergeConfigs.js";
 import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
-import { selectTransport } from "./selectTransport.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -517,7 +266,7 @@ const packageJson = await fs.promises.readFile(
   join(__dirname, "./package.json"),
   {
     encoding: "utf-8",
-  },
+  }
 );
 const packageJsonObj = JSON.parse(packageJson);
 // 主函数
@@ -566,7 +315,7 @@ async function main() {
       origin: config.corsAllowOrigins,
       exposedHeaders: ["Mcp-Session-Id"],
       allowedHeaders: ["Content-Type", "mcp-session-id", "Authorization"],
-    }),
+    })
   );
 
   app.use(express.json());
@@ -581,7 +330,7 @@ async function main() {
       console.log(
         "registering pathPrefix",
         pathPrefix + "/" + key,
-        pathPrefix + "/" + encodeURIComponent(key),
+        pathPrefix + "/" + encodeURIComponent(key)
       );
       app.all(pathPrefix + "/" + encodeURIComponent(key), async (req, res) => {
         const sessionId = req.headers["mcp-session-id"] as string;
@@ -620,8 +369,8 @@ async function main() {
               console.log(`Session closed: ${transport.sessionId}`);
               transports.delete(transport.sessionId);
               serverInstance.httpTransports ??= [];
-              serverInstance.httpTransports = serverInstance.httpTransports
-                .filter((t) => t !== transport);
+              serverInstance.httpTransports =
+                serverInstance.httpTransports.filter((t) => t !== transport);
             }
           };
 
@@ -646,7 +395,7 @@ async function main() {
             console.log(
               "already Initialized  MCP server",
               serverName,
-              serverConfig,
+              serverConfig
             );
           }
 
@@ -696,7 +445,7 @@ async function main() {
             console.log(
               "Initializing MCP server for SSE",
               serverName,
-              serverConfig,
+              serverConfig
             );
             const instance = await createMcpServer(serverName, serverConfig);
             serverInstance.server = instance.server;
@@ -707,7 +456,7 @@ async function main() {
           // 创建SSE传输
           const sseTransport = new SSEServerTransport(
             messageEndpoint + `/${encodeURIComponent(key)}`,
-            res,
+            res
           );
           serverInstance.sseTransports ??= [];
           serverInstance.sseTransports.push(sseTransport);
@@ -718,8 +467,8 @@ async function main() {
           // 设置响应关闭时的清理逻辑
           res.on("close", () => {
             if (serverInstance.sseTransports?.includes(sseTransport)) {
-              serverInstance.sseTransports = serverInstance.sseTransports
-                .filter((t) => t !== sseTransport);
+              serverInstance.sseTransports =
+                serverInstance.sseTransports.filter((t) => t !== sseTransport);
             }
             sseTransports.delete(sseTransport.sessionId);
             console.log(`SSE session closed: ${sseTransport.sessionId}`);
@@ -756,7 +505,7 @@ async function main() {
               res.status(500).json({ error: "Internal server error" });
             }
           }
-        },
+        }
       );
     }
   }
@@ -772,7 +521,7 @@ async function main() {
     }
 
     console.log(
-      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`,
+      `🚀 MCP Bridge (stdio ↔ Streamable HTTP) listening on http://${host}:${port}${pathPrefix}`
     );
 
     if (config.apiKey) {
@@ -784,11 +533,9 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${
-        Object.keys(config.mcpServers || {}).join(
-          ", ",
-        )
-      }`,
+      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
+        ", "
+      )}`
     );
 
     // 打印所有MCP HTTP端点
@@ -806,18 +553,14 @@ async function main() {
       for (const [key] of servers) {
         console.log(
           key,
-          `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
-          }`,
+          `SSE Endpoint: http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
+            key
+          )}`,
           "\n",
           key,
-          `Message Endpoint: http://${host}:${port}${messageEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
-          }`,
+          `Message Endpoint: http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
+            key
+          )}`
         );
       }
     }
