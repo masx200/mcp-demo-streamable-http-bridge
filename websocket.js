@@ -1,4 +1,5 @@
 import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
+import { v4 as uuid } from "uuid";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
 /**
@@ -9,6 +10,7 @@ export class WebSocketClientTransport {
     options;
     _socket;
     _url;
+    sessionId = uuid();
     onclose;
     onerror;
     onmessage;

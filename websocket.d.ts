@@ -12,6 +12,7 @@ export declare class WebSocketClientTransport implements Transport {
     }) | undefined;
     private _socket?;
     private _url;
+    sessionId: string;
     onclose?: () => void;
     onerror?: (error: Error) => void;
     onmessage?: (message: JSONRPCMessage) => void;

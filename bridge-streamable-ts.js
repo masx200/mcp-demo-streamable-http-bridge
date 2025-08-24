@@ -153,8 +153,8 @@ async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ? //@ts-ignore
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -395,7 +395,7 @@ async function main() {
                     sessionIdGenerator: () => randomUUID(),
                     onsessioninitialized: (sessionId) => {
                         transports.set(transport.sessionId, transport);
-                        console.log(`New session initialized: ${sessionId}`);
+                        console.log(`New mcp session initialized: ${sessionId}`);
                     },
                 });
                 // 选择第一个可用的服务器实例
@@ -488,6 +488,7 @@ async function main() {
                     serverInstance.sseTransport = sseTransport;
                     // 存储SSE传输
                     sseTransports.set(sseTransport.sessionId, sseTransport);
+                    console.log(`New SSE session initialized: ${sseTransport.sessionId}`);
                     // 设置响应关闭时的清理逻辑
                     res.on("close", () => {
                         if (serverInstance.sseTransport === sseTransport) {

@@ -1,0 +1,68 @@
+import { WebSocket, WebSocketServer } from "ws";
+import { EventEmitter } from "events";
+import { v4 as uuid } from "uuid";
+export class WebSocketServerTransport extends EventEmitter {
+    options;
+    wss;
+    socket;
+    sessionId = uuid();
+    onclose;
+    onerror;
+    onmessage;
+    setProtocolVersion;
+    constructor(options = {}) {
+        super();
+        this.options = options;
+    }
+    /* ---------- Transport 接口实现 ---------- */
+    async start() {
+        const { port = 3000, host = "localhost", onConnection } = this.options;
+        this.wss = new WebSocketServer({ port, host, ...this.options });
+        return new Promise((resolve) => {
+            this.wss.on("connection", (ws) => {
+                // 只允许单个连接；如有需要可扩展为多连接会话
+                this.socket = ws;
+                // 透传上层回调
+                onConnection?.(ws);
+                // 收到消息 -> 解析 -> 调用onmessage回调
+                ws.on("message", (data) => {
+                    let msg;
+                    try {
+                        msg = JSON.parse(data.toString());
+                    }
+                    catch {
+                        return; // 非法 JSON 直接忽略
+                    }
+                    this.onmessage?.(msg);
+                });
+                ws.on("close", () => {
+                    this.onclose?.();
+                    this.close();
+                });
+                ws.on("error", (err) => {
+                    this.onerror?.(err);
+                    this.emit("error", err);
+                });
+            });
+            this.wss.on("listening", resolve);
+        });
+    }
+    async send(message, options) {
+        if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
+            throw new Error("WebSocket is not ready");
+        }
+        this.socket.send(JSON.stringify(message));
+    }
+    async close() {
+        this.socket?.close();
+        this.wss?.close();
+        this.onclose?.();
+        this.emit("close");
+    }
+    /* ---------- 辅助方法 ---------- */
+    /** 当前活跃连接数（方便调试） */
+    get connectionCount() {
+        return this.wss?.clients.size ?? 0;
+    }
+}
+//# sourceMappingURL=WebSocketServerTransport.js.map

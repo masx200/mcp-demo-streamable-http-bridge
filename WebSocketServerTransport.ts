@@ -1,7 +1,13 @@
 // websocket-transport.ts
 // websocket-transport.ts
-import type { Transport, TransportSendOptions } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { JSONRPCMessage, MessageExtraInfo } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  Transport,
+  TransportSendOptions,
+} from "@modelcontextprotocol/sdk/shared/transport.js";
+import type {
+  JSONRPCMessage,
+  MessageExtraInfo,
+} from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket, WebSocketServer } from "ws";
 import { EventEmitter } from "events";
 import type { WebSocketServerTransportOptions } from "./WebSocketServerTransportOptions.js";
@@ -25,7 +31,7 @@ export class WebSocketServerTransport
 
   async start(): Promise<void> {
     const { port = 3000, host = "localhost", onConnection } = this.options;
-    this.wss = new WebSocketServer({ port, host });
+    this.wss = new WebSocketServer({ port, host, ...this.options });
 
     return new Promise((resolve) => {
       this.wss!.on("connection", (ws) => {
@@ -60,7 +66,10 @@ export class WebSocketServerTransport
     });
   }
 
-  async send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: TransportSendOptions
+  ): Promise<void> {
     if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
       throw new Error("WebSocket is not ready");
     }
@@ -73,8 +82,6 @@ export class WebSocketServerTransport
     this.onclose?.();
     this.emit("close");
   }
-
-
 
   /* ---------- 辅助方法 ---------- */
 
