@@ -53,14 +53,13 @@ export class WebSocketServerTransport
           this.onerror?.(new Error(`Failed to parse message: ${err}`));
           return; // 非法 JSON 直接忽略
         }
-        this.onmessage?.(Object.assign(msg, { id: clientId }));
+        this.onmessage?.(Object.assign(msg, { sessionId: clientId }));
       });
 
       ws.on("close", () => {
         this.ondisconnection?.(clientId);
         this.clients.delete(clientId);
         this.onclose?.();
-       
       });
       ws.on("error", (err) => {
         this.onerror?.(err);
@@ -79,7 +78,9 @@ export class WebSocketServerTransport
       const client = this.clients.get(String(clientId));
       if (client) {
         if (client?.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(message));
+          client.send(
+            JSON.stringify(Object.assign(message, { sessionId: clientId }))
+          );
         } else {
           this.clients.delete(String(clientId));
           this.ondisconnection?.(String(clientId));

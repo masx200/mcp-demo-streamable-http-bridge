@@ -23,7 +23,7 @@ export class WebSocketClientTransport implements Transport {
     public url: URL,
     public options?: (WebSocket.ClientOptions | ClientRequestArgs) & {
       protocols?: string | string[];
-    },
+    }
   ) {
     this._url = url;
   }
@@ -31,7 +31,7 @@ export class WebSocketClientTransport implements Transport {
   start(): Promise<void> {
     if (this._socket) {
       throw new Error(
-        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically."
       );
     }
 
@@ -39,13 +39,14 @@ export class WebSocketClientTransport implements Transport {
       this._socket = new WebSocket(
         this._url,
         this.options?.protocols ?? SUBPROTOCOL,
-        this.options,
+        this.options
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error = "error" in event
-          ? (event.error as Error)
-          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error =
+          "error" in event
+            ? (event.error as Error)
+            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
       };
@@ -68,9 +69,15 @@ export class WebSocketClientTransport implements Transport {
           return;
         }
 
-        let message: JSONRPCMessage;
+        let message: JSONRPCMessage & { sessionId: string };
         try {
-          message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
+          message = Object.assign(
+            JSONRPCMessageSchema.parse(JSON.parse(event.data)),
+            { sessionId: JSON.parse(event.data).sessionId }
+          );
+          if (message?.sessionId !== this.sessionId) {
+            this.sessionId = message.sessionId;
+          }
         } catch (error) {
           this.onerror?.(error as Error);
           return;
@@ -92,7 +99,9 @@ export class WebSocketClientTransport implements Transport {
         return;
       }
 
-      this._socket?.send(JSON.stringify(message));
+      this._socket?.send(
+        JSON.stringify(Object.assign(message, { sessionId: this.sessionId }))
+      );
       resolve();
     });
   }
