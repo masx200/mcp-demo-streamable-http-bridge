@@ -3,14 +3,14 @@ import type {
   TransportSendOptions,
 } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
-  JSONRPCMessageSchema,
   type JSONRPCMessage,
+  JSONRPCMessageSchema,
   type MessageExtraInfo,
   type RequestInfo,
 } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
 
-import { randomUUID } from "node:crypto";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { ServerOptions } from "ws";
 /**
@@ -100,6 +100,10 @@ export interface WebSocketServerTransportOptions extends ServerOptions {
  * - No session validation is performed
  */
 export class WebSocketServerTransport implements Transport {
+  get wss(): WebSocketServer | undefined {
+    return this._wss;
+  }
+
   // when sessionId is not set (undefined), it means the transport is in stateless mode
   private sessionIdGenerator: (() => string) | undefined;
   private _started: boolean = false;
