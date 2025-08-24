@@ -39,7 +39,7 @@ function loadConfigFile(filePath) {
     }
     catch (error) {
         console.warn(`Failed to load config file ${filePath}:`, error);
-        return DEFAULT_CONFIG;
+        process.exit(1);
     }
 }
 // 从环境变量加载配置

@@ -97,7 +97,8 @@ function loadConfigFile(filePath: string): Config {
     return { ...DEFAULT_CONFIG, ...fileConfig };
   } catch (error) {
     console.warn(`Failed to load config file ${filePath}:`, error);
-    return DEFAULT_CONFIG;
+    process.exit(1)
+    
   }
 }
 
