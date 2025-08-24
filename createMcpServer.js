@@ -2,7 +2,8 @@ import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { getServerCapabilities, } from "./main.js";
+import { getServerCapabilities } from "./getServerCapabilities.js";
+import {} from "./main.js";
 import { selectTransport } from "./selectTransport.js";
 // 创建MCP服务器实例
 export async function createMcpServer(serverName, serverConfig) {
@@ -22,7 +23,7 @@ export async function createMcpServer(serverName, serverConfig) {
     //@ts-ignore
     await client.connect(transport);
     console.log("client connected", transport);
-    const capabilities = Object.assign({}, await getServerCapabilities(client));
+    const capabilities = await getServerCapabilities(client) ?? {};
     console.log(`[${serverName}] capabilities:`, capabilities);
     const listOutputs = {
         tools: null,

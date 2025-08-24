@@ -62,7 +62,7 @@ async function factory(transport) {
     });
     // client.close();
     await client.connect(stdioTransport);
-    const capabilities = Object.assign({}, await getServerCapabilities(client));
+    const capabilities = await getServerCapabilities(client) ?? {};
     console.log("capabilities:", capabilities);
     const listOutputs = {
         tools: null,

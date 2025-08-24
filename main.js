@@ -5,7 +5,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest, } from "@modelcontextprotocol/sdk/types.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import cors from "cors";
 import express from "express";
 import fs, {} from "fs";
@@ -19,8 +19,8 @@ import { createMcpServer } from "./createMcpServer.js";
 import { mergeConfigs } from "./mergeConfigs.js";
 import { parseCommandLineArgs } from "./parseCommandLineArgs.js";
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import { WebSocketServerTransport, } from "./WebSocketServerTransport.js";
 import { WebSocketServer } from "ws";
+import { WebSocketServerTransport, } from "./WebSocketServerTransport.js";
 const wsservertransports = new Set();
 // 默认配置
 export const DEFAULT_CONFIG = {
@@ -69,20 +69,6 @@ function loadEnvConfig() {
             : undefined,
         pathPrefix: process.env.BRIDGE_STREAMABLE_HTTP_PATH,
     };
-}
-// 获取服务器能力
-export async function getServerCapabilities(client) {
-    try {
-        return await client.getServerCapabilities();
-    }
-    catch (error) {
-        console.error("Error getting server capabilities:", error);
-        return {
-            tools: {},
-            resources: {},
-            prompts: {},
-        };
-    }
 }
 // 初始化所有MCP服务器
 async function initializeServers(config) {
@@ -481,11 +467,11 @@ async function main() {
                         callback(result);
                     },
             };
-            const wss = new WebSocketServer({ port, host, ...options });
+            const wss = new WebSocketServer({ ...options });
             wss.on("error", (error) => {
                 console.error("WebSocketServerTransport error", error);
             });
-            wss.on("connection", (ws, request) => {
+            wss.on("connection", async (ws, request) => {
                 const wsTransport = new WebSocketServerTransport(ws, request, options);
                 console.log("wsserverTransport", wsTransport);
                 if (!wsTransport) {

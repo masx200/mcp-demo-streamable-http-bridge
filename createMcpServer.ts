@@ -8,11 +8,8 @@ import {
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import {
-  getServerCapabilities,
-  type McpServerConfig,
-  type ServerInstance,
-} from "./main.js";
+import { getServerCapabilities } from "./getServerCapabilities.js";
+import { type McpServerConfig, type ServerInstance } from "./main.js";
 import { selectTransport } from "./selectTransport.js";
 
 // 创建MCP服务器实例
@@ -42,7 +39,7 @@ export async function createMcpServer(
   //@ts-ignore
   await client.connect(transport);
   console.log("client connected", transport);
-  const capabilities = Object.assign({}, await getServerCapabilities(client));
+  const capabilities = await getServerCapabilities(client) ?? {};
   console.log(`[${serverName}] capabilities:`, capabilities);
 
   const listOutputs = {

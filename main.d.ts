@@ -5,7 +5,6 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { type ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 import type { WebSocketClientTransport } from "./WebSocketClientTransport.js";
 export interface McpServerConfig {
     protocols?: string | string[];
@@ -54,5 +53,4 @@ export interface ServerInstance {
 }
 export declare const DEFAULT_CONFIG: Config;
 export declare let config: Config;
-export declare function getServerCapabilities(client: Client): Promise<ServerCapabilities | undefined>;
 //# sourceMappingURL=main.d.ts.map
