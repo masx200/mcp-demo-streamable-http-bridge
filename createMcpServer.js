@@ -1,7 +1,7 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
+import { GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { getServerCapabilities } from "./getServerCapabilities.js";
 import {} from "./main.js";
 import { selectTransport } from "./selectTransport.js";
@@ -116,8 +116,8 @@ export async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ? //@ts-ignore
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -185,6 +185,12 @@ export async function createMcpServer(serverName, serverConfig) {
         console.error(`[${serverName}] Error Registering Resources:`, error);
     }
     console.log("getServerCapabilities", client.getServerCapabilities());
+    if (client.getServerCapabilities()?.logging) {
+        server.server.setRequestHandler(SetLevelRequestSchema, async (args) => {
+            console.log(`[${serverName}] Setting logging level...`, JSON.stringify(args.params, null, 4));
+            return await client.setLoggingLevel(args.params.level);
+        });
+    }
     return {
         config: serverConfig,
         server,
