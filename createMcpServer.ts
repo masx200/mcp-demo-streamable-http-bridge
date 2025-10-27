@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   GetPromptRequestSchema,
+  isInitializedNotification,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
@@ -302,7 +303,7 @@ export async function createMcpServer(
     (notification) => {
       console.log(
         `[${serverName}] Tool list changed...`,
-        JSON.stringify(notification.params, null, 4),
+        JSON.stringify(isInitializedNotification, null, 4),
       );
       server.sendToolListChanged();
 
