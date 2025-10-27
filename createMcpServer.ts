@@ -6,6 +6,7 @@ import {
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
+  ListToolsRequestSchema,
   ReadResourceRequestSchema,
   SetLevelRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -282,10 +283,18 @@ export async function createMcpServer(
         `[${serverName}] Setting logging level...`,
         JSON.stringify(args.params, null, 4)
       );
-    
-      return await client.setLoggingLevel(args.params.level,);
+
+      return await client.setLoggingLevel(args.params.level);
     });
   }
+
+  server.server.setRequestHandler(
+    ListToolsRequestSchema,
+    async (request, extra) => {
+      const tools = await client.listTools(request.params);
+      return tools;
+    }
+  );
   return {
     config: serverConfig,
     server,
