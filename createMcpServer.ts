@@ -292,7 +292,7 @@ export async function createMcpServer(
   server.server.setRequestHandler(
     ListToolsRequestSchema,
     async (request, extra) => {
-      const tools = await client.listTools(request.params);
+      const tools = await client.listTools();
       return tools;
     }
   );

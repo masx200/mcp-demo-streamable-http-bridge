@@ -8,7 +8,7 @@ import { selectTransport } from "./selectTransport.js";
 // 创建MCP服务器实例
 export async function createMcpServer(serverName, serverConfig) {
     // 使用selectTransport函数选择合适的transport
-    const transport = selectTransport(serverConfig);
+    let transport = selectTransport(serverConfig);
     if (!transport) {
         throw new Error("Failed to create transport, please check the configuration.");
     }
@@ -116,8 +116,8 @@ export async function createMcpServer(serverName, serverConfig) {
                 //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ? //@ts-ignore
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -192,7 +192,7 @@ export async function createMcpServer(serverName, serverConfig) {
         });
     }
     server.server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
-        const tools = await client.listTools(request.params);
+        const tools = await client.listTools();
         return tools;
     });
     client.setNotificationHandler(ToolListChangedNotificationSchema, (notification) => {
@@ -205,8 +205,16 @@ export async function createMcpServer(serverName, serverConfig) {
     client.onerror = (error) => {
         console.error(`[${serverName}] Error:`, error);
     };
-    client.onclose = () => {
+    client.onclose = async () => {
         console.log(`[${serverName}] Connection closed`);
+        transport = selectTransport(serverConfig);
+        if (transport) {
+            await client.connect(transport);
+        }
+        if (!transport) {
+            throw new Error("Failed to create transport, please check the configuration.");
+        }
+        console.log("clienttransport", transport);
     };
     return {
         config: serverConfig,
