@@ -1,4 +1,4 @@
-from docker.cnb.cool/masx200/docker_mirror/mcp-streamable-http-bridge:2.5.0-2025-08-24
+from docker.cnb.cool/masx200/docker_mirror/mcp-streamable-http-bridge:2025-10-23-00-37-11
 
 
 run cat  <<EOF > /etc/apt/sources.list 
