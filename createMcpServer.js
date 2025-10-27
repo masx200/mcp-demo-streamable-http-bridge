@@ -196,7 +196,7 @@ export async function createMcpServer(serverName, serverConfig) {
         return tools;
     });
     client.setNotificationHandler(ToolListChangedNotificationSchema, (notification) => {
-        console.log(`[${serverName}] Tool list changed...`, JSON.stringify(notification.params, null, 4));
+        console.log(`[${serverName}] Tool list changed...`, JSON.stringify(notification, null, 4));
         server.sendToolListChanged();
         client.listTools().then((tools) => {
             console.log("更新后的工具列表:", tools);
