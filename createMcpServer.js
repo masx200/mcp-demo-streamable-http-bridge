@@ -198,10 +198,12 @@ export async function createMcpServer(serverName, serverConfig) {
         });
     }
     server.server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
+        console.log(`[${serverName}] Listing tools...`, JSON.stringify(request.params, null, 4));
         const tools = await client.listTools(request.params);
         return tools;
     });
     server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+        console.log(`[${serverName}] Calling tool...`, JSON.stringify(request.params, null, 4));
         const tools = await client.callTool(request.params);
         return tools;
     });
