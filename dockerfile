@@ -97,7 +97,7 @@ run yarn run build
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-CMD [ "node","/root/mcp-streamable-http-bridge/main.js" ]
+CMD [ "node","/root/mcp-streamable-http-bridge/main.js",  "--config",       "/data/settings.json" ]
 
 
 
