@@ -311,7 +311,12 @@ export async function createMcpServer(
       });
     },
   );
-
+client.onerror = (error) => {
+  console.error(`[${serverName}] Error:`, error);
+};
+client.onclose = () => {
+  console.log(`[${serverName}] Connection closed`);
+};
   return {
     config: serverConfig,
     server,
