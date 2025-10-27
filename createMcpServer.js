@@ -1,7 +1,7 @@
 import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema, ToolListChangedNotificationSchema, } from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListResourceTemplatesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, SetLevelRequestSchema, ToolListChangedNotificationSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { getServerCapabilities } from "./getServerCapabilities.js";
 import {} from "./main.js";
 import { selectTransport } from "./selectTransport.js";
@@ -13,6 +13,12 @@ export async function createMcpServer(serverName, serverConfig) {
         throw new Error("Failed to create transport, please check the configuration.");
     }
     console.log("clienttransport", transport);
+    transport.onclose = () => {
+        console.log(`[${serverName}] Connection closed`);
+    };
+    transport.onerror = (error) => {
+        console.error(`[${serverName}] Connection error:`, error);
+    };
     //  const client= new McpClient()
     const client = new Client({ name: `bridge-client-${serverName}`, version: "1.0.0" }, {
         capabilities: {
@@ -192,7 +198,11 @@ export async function createMcpServer(serverName, serverConfig) {
         });
     }
     server.server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
-        const tools = await client.listTools();
+        const tools = await client.listTools(request.params);
+        return tools;
+    });
+    server.server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+        const tools = await client.callTool(request.params);
         return tools;
     });
     client.setNotificationHandler(ToolListChangedNotificationSchema, (notification) => {

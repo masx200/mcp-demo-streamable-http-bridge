@@ -2,6 +2,7 @@ import { JSONSchemaToZod } from "@dmitryrechkin/json-schema-to-zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  CallToolRequestSchema,
   GetPromptRequestSchema,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
@@ -29,6 +30,13 @@ export async function createMcpServer(
     );
   }
   console.log("clienttransport", transport);
+
+  transport.onclose = () => {
+    console.log(`[${serverName}] Connection closed`);
+  };
+  transport.onerror = (error) => {
+    console.error(`[${serverName}] Connection error:`, error);
+  };
   //  const client= new McpClient()
   const client = new Client(
     { name: `bridge-client-${serverName}`, version: "1.0.0" },
@@ -292,11 +300,17 @@ export async function createMcpServer(
   server.server.setRequestHandler(
     ListToolsRequestSchema,
     async (request, extra) => {
-      const tools = await client.listTools();
+      const tools = await client.listTools(request.params);
       return tools;
     }
   );
-
+  server.server.setRequestHandler(
+    CallToolRequestSchema,
+    async (request, extra) => {
+      const tools = await client.callTool(request.params);
+      return tools;
+    }
+  );
   client.setNotificationHandler(
     ToolListChangedNotificationSchema,
     (notification) => {
