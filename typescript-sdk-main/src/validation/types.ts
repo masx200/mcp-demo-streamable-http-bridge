@@ -1,16 +1,18 @@
-import type { Schema } from '@cfworker/json-schema';
+import type { Schema } from "@cfworker/json-schema";
 
 /**
  * Result of a JSON Schema validation operation
  */
 export type JsonSchemaValidatorResult<T> =
-    | { valid: true; data: T; errorMessage: undefined }
-    | { valid: false; data: undefined; errorMessage: string };
+  | { valid: true; data: T; errorMessage: undefined }
+  | { valid: false; data: undefined; errorMessage: string };
 
 /**
  * A validator function that validates data against a JSON Schema
  */
-export type JsonSchemaValidator<T> = (input: unknown) => JsonSchemaValidatorResult<T>;
+export type JsonSchemaValidator<T> = (
+  input: unknown,
+) => JsonSchemaValidatorResult<T>;
 
 /**
  * Provider interface for creating validators from JSON Schemas
@@ -40,13 +42,13 @@ export type JsonSchemaValidator<T> = (input: unknown) => JsonSchemaValidatorResu
  * ```
  */
 export interface jsonSchemaValidator {
-    /**
-     * Create a validator for the given JSON Schema
-     *
-     * @param schema - Standard JSON Schema object
-     * @returns A validator function that can be called multiple times
-     */
-    getValidator<T>(schema: JsonSchemaType): JsonSchemaValidator<T>;
+  /**
+   * Create a validator for the given JSON Schema
+   *
+   * @param schema - Standard JSON Schema object
+   * @returns A validator function that can be called multiple times
+   */
+  getValidator<T>(schema: JsonSchemaType): JsonSchemaValidator<T>;
 }
 
 export type JsonSchemaType = Schema;

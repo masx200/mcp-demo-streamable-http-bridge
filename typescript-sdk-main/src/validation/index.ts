@@ -27,4 +27,9 @@
  */
 
 // Core types only - implementations are exported via separate entry points
-export type { JsonSchemaType, JsonSchemaValidator, JsonSchemaValidatorResult, jsonSchemaValidator } from './types.js';
+export type {
+  JsonSchemaType,
+  JsonSchemaValidator,
+  jsonSchemaValidator,
+  JsonSchemaValidatorResult,
+} from "./types.js";

@@ -3,11 +3,7 @@
 ## docker
 
 ```bash
-
 docker pull docker.cnb.cool/masx200/docker_mirror/mcp-streamable-http-bridge:latest
-
-
-
 ```
 
 #### 介绍
@@ -294,11 +290,7 @@ Token，并在客户端请求时提供相应的 Token。
 
 #### 使用说明
 
-
 #### 桥接服务器使用说明
-
-
-
 
 启用认证后，所有 HTTP 请求都需要在 Authorization 头中提供 Bearer Token：
 

@@ -16,8 +16,10 @@ npx jest -t "test name"        # Run tests matching pattern
 - **Naming**: PascalCase for classes/types, camelCase for functions/variables
 - **Files**: Lowercase with hyphens, test files with `.test.ts` suffix
 - **Imports**: ES module style, include `.js` extension, group imports logically
-- **Error Handling**: Use TypeScript's strict mode, explicit error checking in tests
-- **Formatting**: 2-space indentation, semicolons required, single quotes preferred
+- **Error Handling**: Use TypeScript's strict mode, explicit error checking in
+  tests
+- **Formatting**: 2-space indentation, semicolons required, single quotes
+  preferred
 - **Testing**: Co-locate tests with source files, use descriptive test names
 - **Comments**: JSDoc for public APIs, inline comments for complex logic
 
