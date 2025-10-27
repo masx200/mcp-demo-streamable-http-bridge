@@ -221,6 +221,12 @@ export async function createMcpServer(serverName, serverConfig) {
         console.log(`[${serverName}] Connection closed`);
         transport = selectTransport(serverConfig);
         if (transport) {
+            transport.onclose = () => {
+                console.log(`[${serverName}] Connection closed`);
+            };
+            transport.onerror = (error) => {
+                console.error(`[${serverName}] Connection error:`, error);
+            };
             await client.connect(transport);
         }
         if (!transport) {

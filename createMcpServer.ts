@@ -300,7 +300,7 @@ export async function createMcpServer(
   server.server.setRequestHandler(
     ListToolsRequestSchema,
     async (request, extra) => {
-       console.log(
+      console.log(
         `[${serverName}] Listing tools...`,
         JSON.stringify(request.params, null, 4)
       );
@@ -311,7 +311,7 @@ export async function createMcpServer(
   server.server.setRequestHandler(
     CallToolRequestSchema,
     async (request, extra) => {
-       console.log(
+      console.log(
         `[${serverName}] Calling tool...`,
         JSON.stringify(request.params, null, 4)
       );
@@ -340,6 +340,12 @@ export async function createMcpServer(
     console.log(`[${serverName}] Connection closed`);
     transport = selectTransport(serverConfig);
     if (transport) {
+      transport.onclose = () => {
+        console.log(`[${serverName}] Connection closed`);
+      };
+      transport.onerror = (error) => {
+        console.error(`[${serverName}] Connection error:`, error);
+      };
       await client.connect(transport);
     }
     if (!transport) {
