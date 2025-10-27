@@ -303,7 +303,7 @@ export async function createMcpServer(
     (notification) => {
       console.log(
         `[${serverName}] Tool list changed...`,
-        JSON.stringify(isInitializedNotification, null, 4),
+        JSON.stringify(notification, null, 4),
       );
       server.sendToolListChanged();
 
