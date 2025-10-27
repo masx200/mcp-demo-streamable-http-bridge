@@ -1,5 +1,15 @@
 # mcp-demo-streamable-http-bridge
 
+## docker
+
+```bash
+
+docker pull docker.cnb.cool/masx200/docker_mirror/mcp-streamable-http-bridge:latest
+
+
+
+```
+
 #### 介绍
 
 mcp-demo-streamable-http-bridge
