@@ -7,7 +7,7 @@
     "dev": "concurrently --kill-others 'yarn run watch' 'nodemon main.js' ",
     "watch": "npx tsc  -p tsconfig.json --watch",
     "build": "npx tsc  -p tsconfig.json",
-    "start:bridge": "node bridge-streamable.js",
+    
     "start:bridge-ts": "yarn run build:ts && node main.js",
     "start": "yarn run build:ts && node main.js",
     "build:ts": "npx tsc  -p tsconfig.json",
@@ -51,5 +51,5 @@
     "type": "git",
     "url": "https://gitee.com/masx200/mcp-demo-streamable-http-bridge"
   },
-  "types": "./bridge-streamable-ts.d.ts"
+  "types": "./main.ts"
 }

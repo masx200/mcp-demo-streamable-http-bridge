@@ -21,7 +21,6 @@ mcp-demo-streamable-http-bridge
 这是一个演示项目，用于展示如何将 stdio 协议转换为 streamable-http
 协议的桥接服务器。项目包含两个版本：
 
-- **JavaScript 版本** (`bridge-streamable.js`) - 原始版本，支持单个 MCP 服务器
 - **TypeScript 版本** (`main.ts`) -
   增强版本，支持多服务器、配置文件、热重载等高级功能
 
@@ -40,10 +39,6 @@ mcp-demo-streamable-http-bridge
 ## 使用说明
 
 ### 版本选择
-
-#### JavaScript 版本 (bridge-streamable.js)
-
-适合简单场景，支持单个 MCP 服务器桥接。
 
 #### TypeScript 版本 (main.ts)
 
@@ -253,12 +248,6 @@ TypeScript 版本仍然支持原有的环境变量配置：
 
 #### 启动桥接服务器
 
-运行以下命令启动桥接服务器：
-
-```bash
-node bridge-streamable.js
-```
-
 #### 环境变量配置
 
 桥接服务器支持以下环境变量：
@@ -305,51 +294,11 @@ Token，并在客户端请求时提供相应的 Token。
 
 #### 使用说明
 
-### 把 stdio 协议转为 streamable-http 协议
-
-```
-node bridge-streamable.js "cmd" "/c"  "npx" "-y"  "@gitee/mcp-gitee@latest" -token <GITEE_ACCESS_TOKEN>
-```
 
 #### 桥接服务器使用说明
 
-##### 启动桥接服务器
 
-```bash
-node bridge-streamable.js node index-stdio.js
-```
 
-##### 环境变量配置
-
-可以通过设置以下环境变量来配置桥接服务器：
-
-```bash
-# Linux/Mac
-export BRIDGE_API_TOKEN="your-secret-token"      # 可选：Token认证
-export BRIDGE_API_PORT=8080                       # 可选：端口配置，默认3000
-export BRIDGE_API_PWD="/path/to/workdir"          # 可选：工作目录
-node bridge-streamable.js node index-stdio.js
-
-# Windows
-set BRIDGE_API_TOKEN=your-secret-token
-set BRIDGE_API_PORT=8080
-set BRIDGE_API_PWD=C:\\path\\to\\workdir
-node bridge-streamable.js node index-stdio.js
-```
-
-##### HTTP API Token 认证（可选）
-
-可以通过设置环境变量`BRIDGE_API_TOKEN`来启用 HTTP API Token 认证：
-
-```bash
-# Linux/Mac
-export BRIDGE_API_TOKEN="your-secret-token"
-node bridge-streamable.js node index-stdio.js
-
-# Windows
-set BRIDGE_API_TOKEN=your-secret-token
-node bridge-streamable.js node index-stdio.js
-```
 
 启用认证后，所有 HTTP 请求都需要在 Authorization 头中提供 Bearer Token：
 
@@ -400,7 +349,7 @@ node bridge-streamable.js node index-stdio.js
 
 #### 3. 使用桥接服务器的 streamable-http 配置
 
-创建 `mcp-bridge-streamable.json`：
+创建 `settings.json`：
 
 ```json
 {

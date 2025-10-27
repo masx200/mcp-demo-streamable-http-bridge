@@ -10,7 +10,7 @@ This is an MCP (Model Context Protocol) bridge server that converts stdio-based 
 
 ### Dual Version Implementation
 - **TypeScript Version** (`main.ts`) - Enhanced multi-server architecture (recommended)
-- **JavaScript Version** (`bridge-streamable.js`) - Original single-server implementation
+
 
 ### Supported Transport Protocols
 - **Stdio Transport**: Direct process communication with MCP servers
@@ -164,7 +164,7 @@ The primary configuration supports multiple MCP servers with different transport
 
 ### Core Architecture
 - `main.ts` - Main enhanced TypeScript server (23,717 lines)
-- `bridge-streamable.js` - Original JavaScript version (13,873 lines)
+
 - `createMcpServer.ts` - MCP server factory implementation
 - `selectTransport.ts` - Protocol selection logic
 - `authenticateToken.ts` - JWT/Bearer token authentication

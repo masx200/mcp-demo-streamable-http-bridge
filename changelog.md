@@ -35,21 +35,7 @@
 
 ## 使用示例
 
-### 综合使用示例
 
-```bash
-# Linux/Mac
-export BRIDGE_API_TOKEN="my-secret-token"
-export BRIDGE_API_PORT=8080
-export BRIDGE_API_PWD="/home/user/projects"
-node bridge-streamable.js node index-stdio.js
-
-# Windows
-set BRIDGE_API_TOKEN=my-secret-token
-set BRIDGE_API_PORT=8080
-set BRIDGE_API_PWD=C:\\Users\\user\\projects
-node bridge-streamable.js node index-stdio.js
-```
 
 ## 修复资源清理问题并改进错误处理
 
