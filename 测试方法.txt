@@ -1,0 +1,117 @@
+1.测试http协议服务器的方法
+
+
+
+编译代码
+
+
+```bash
+
+ npm run build
+
+ 
+```
+
+配置文件
+
+
+```json
+{
+  "enableHttpServer": true,
+  "wsServer": {
+    "enabled": true,
+    "pathPrefix": "/ws"
+  },
+  "sseServer": {
+    "enabled": true,
+    "endpoint": "/sse",
+    "messageEndpoint": "/messages"
+  },
+  "pathPrefix": "/mcp",
+  "hotReload": false,
+  "apiKey": "",
+  "port": 30000,
+  "host": "0.0.0.0",
+  "corsAllowOrigins": ["*"],
+  "mcpServers": {
+    "docker": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "F:/projects/docker_mcp_server/docker-mcp-server.jar",
+        "--server-name=docker-mcp-server",
+        "--server-version=1.0.0",
+        "--max-connections=100"
+      ]
+    }
+  }
+}
+
+```
+启动http协议的服务器
+
+```bash
+
+
+node  D:\github\mcp-demo-streamable-http-bridge\main.js --config "F:\projects\test\settings.json" --port 41111
+
+
+```
+
+
+
+测试tools/list方法
+
+
+```bash
+
+ pnpx  @modelcontextprotocol/inspector --cli http://localhost:41111/mcp/docker --transport http --method tools/list     
+```
+
+
+
+2. 测试 stdio 协议的服务器的方法
+
+
+
+
+```bash
+pnpx  @modelcontextprotocol/inspector --cli  --transport stdio --method tools/list -- java -jar F:/projects/docker_mcp_server/docker-mcp-server.jar
+```
+
+
+
+3.修复bug总结
+
+**问题描述：**
+当stdio传输的MCP服务器进程意外退出时，会出现以下错误：
+```
+McpError: MCP error -32000: Connection closed
+    at Client._onclose (file:///.../protocol.js:109:23)
+    at _transport.onclose (file:///.../protocol.js:76:18)
+    at ChildProcess.<anonymous> (file:///.../stdio.js:95:77)
+```
+
+**根本原因：**
+这是 `@modelcontextprotocol/sdk` 版本 1.20.2 中的一个已知bug，在 `shared/protocol.ts` 的 `_onclose()` 方法中，当连接关闭时会抛出未处理的 `ConnectionClosed` 错误。
+
+**解决方案：**
+1. **升级SDK依赖包**（推荐）：
+   ```bash
+   npm update @modelcontextprotocol/sdk
+   ```
+   将 `@modelcontextprotocol/sdk` 从 "^1.20.2" 升级到最新版本即可彻底解决此问题。
+
+2. **代码层面改进**（可选）：
+   - 在 `createMcpServer.ts` 中改进了连接关闭处理逻辑
+   - 添加了重试机制和更优雅的错误处理
+   - 在 `main.ts` 中移除了导致程序退出的 `process.exit(1)`
+
+**修复效果：**
+- ✅ 连接关闭不再导致程序崩溃
+- ✅ 服务器会继续运行其他可用的MCP服务器
+- ✅ 添加了自动重连机制，提高连接稳定性
+- ✅ 更好的错误日志和调试信息
+
+**验证方法：**
+使用任意配置启动服务器，即使某个MCP服务器连接失败，桥接服务器也会继续正常运行。

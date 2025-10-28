@@ -14,10 +14,10 @@ export async function createMcpServer(serverName, serverConfig) {
     }
     console.log("clienttransport", transport);
     transport.onclose = () => {
-        console.log(`[${serverName}] Connection closed`);
+        console.log(`[${serverName}] Transport connection closed`);
     };
     transport.onerror = (error) => {
-        console.error(`[${serverName}] Connection error:`, error);
+        console.error(`[${serverName}] Transport connection error:`, error);
     };
     //  const client= new McpClient()
     const client = new Client({ name: `bridge-client-${serverName}`, version: "1.0.0" }, {
@@ -219,20 +219,49 @@ export async function createMcpServer(serverName, serverConfig) {
     };
     client.onclose = async () => {
         console.log(`[${serverName}] Connection closed`);
-        transport = selectTransport(serverConfig);
-        if (transport) {
-            transport.onclose = () => {
-                console.log(`[${serverName}] Connection closed`);
-            };
-            transport.onerror = (error) => {
-                console.error(`[${serverName}] Connection error:`, error);
-            };
-            await client.connect(transport);
-        }
-        if (!transport) {
-            throw new Error("Failed to create transport, please check the configuration.");
-        }
-        console.log("clienttransport", transport);
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 1000; // 1 second
+        const tryReconnect = async () => {
+            try {
+                console.log(`[${serverName}] Attempting to reconnect... (attempt ${retryCount + 1}/${maxRetries})`);
+                // 清理旧的transport
+                if (transport) {
+                    try {
+                        transport.close?.();
+                    }
+                    catch (e) {
+                        console.warn(`[${serverName}] Error closing old transport:`, e);
+                    }
+                }
+                transport = selectTransport(serverConfig);
+                if (!transport) {
+                    console.error(`[${serverName}] Failed to create transport, please check the configuration.`);
+                    return;
+                }
+                transport.onclose = () => {
+                    console.log(`[${serverName}] Transport connection closed`);
+                };
+                transport.onerror = (error) => {
+                    console.error(`[${serverName}] Transport connection error:`, error);
+                };
+                await client.connect(transport);
+                console.log(`[${serverName}] Reconnected successfully`);
+            }
+            catch (error) {
+                retryCount++;
+                console.error(`[${serverName}] Reconnection attempt ${retryCount} failed:`, error);
+                if (retryCount < maxRetries) {
+                    console.log(`[${serverName}] Retrying in ${retryDelay}ms...`);
+                    setTimeout(tryReconnect, retryDelay * retryCount); // Exponential backoff
+                }
+                else {
+                    console.error(`[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`);
+                    // 可以在这里触发通知或标记服务器为不可用状态
+                }
+            }
+        };
+        tryReconnect();
     };
     return {
         config: serverConfig,

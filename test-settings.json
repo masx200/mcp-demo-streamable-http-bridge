@@ -1,0 +1,24 @@
+{
+  "enableHttpServer": true,
+  "wsServer": {
+    "enabled": true,
+    "pathPrefix": "/ws"
+  },
+  "sseServer": {
+    "enabled": true,
+    "endpoint": "/sse",
+    "messageEndpoint": "/messages"
+  },
+  "pathPrefix": "/mcp",
+  "hotReload": false,
+  "apiKey": "",
+  "port": 30000,
+  "host": "0.0.0.0",
+  "corsAllowOrigins": ["*"],
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}

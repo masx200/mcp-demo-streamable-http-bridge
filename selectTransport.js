@@ -12,6 +12,12 @@ export function selectTransport(serverConfig) {
         if (!serverConfig.command) {
             throw new Error("command is required for stdio transport");
         }
+        // 验证command是否存在
+        const command = serverConfig.command;
+        const isWindows = process.platform === 'win32';
+        const commandExtension = isWindows ? '.exe' : '';
+        const fullCommand = command.endsWith(commandExtension) ? command : command + commandExtension;
+        console.log(`[selectTransport] Creating stdio transport for command: ${fullCommand}`);
         return new StdioClientTransport({
             command: serverConfig.command,
             args: serverConfig.args,

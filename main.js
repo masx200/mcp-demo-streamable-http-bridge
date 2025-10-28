@@ -103,13 +103,14 @@ async function initializeServers(config) {
             throw new Error("url, command, wsUrl, httpUrl, sseUrl are required,configuration  is invalid,    please check the configuration file");
         }
         try {
-            // const instance = await createMcpServer(serverName, serverConfig);
-            servers.set(serverName, { config: serverConfig });
+            const instance = await createMcpServer(serverName, serverConfig);
+            servers.set(serverName, instance);
             console.log(`✅ Server '${serverName}' initialized successfully`);
         }
         catch (error) {
             console.error(`❌ Failed to initialize server '${serverName}':`, error);
-            process.exit(1);
+            // 不要退出整个程序，而是继续运行其他服务器
+            console.warn(`⚠️  Server '${serverName}' will be unavailable. The bridge will continue with other configured servers.`);
         }
     }
 }
