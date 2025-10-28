@@ -173,7 +173,9 @@ async function initializeServers(config: Config) {
     } catch (error) {
       console.error(`❌ Failed to initialize server '${serverName}':`, error);
       // 不要退出整个程序，而是继续运行其他服务器
-      console.warn(`⚠️  Server '${serverName}' will be unavailable. The bridge will continue with other configured servers.`);
+      console.warn(
+        `⚠️  Server '${serverName}' will be unavailable. The bridge will continue with other configured servers.`,
+      );
     }
   }
 }

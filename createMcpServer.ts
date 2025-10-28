@@ -10,23 +10,23 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
   SetLevelRequestSchema,
-  ToolListChangedNotificationSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { getServerCapabilities } from "./getServerCapabilities.js";
 import { type McpServerConfig, type ServerInstance } from "./main.js";
+import { setupAllNotificationHandlers } from "./notificationHandlers.js";
 import { selectTransport } from "./selectTransport.js";
 
 // 创建MCP服务器实例
 export async function createMcpServer(
   serverName: string,
-  serverConfig: McpServerConfig
+  serverConfig: McpServerConfig,
 ): Promise<ServerInstance> {
   // 使用selectTransport函数选择合适的transport
   let transport = selectTransport(serverConfig);
 
   if (!transport) {
     throw new Error(
-      "Failed to create transport, please check the configuration."
+      "Failed to create transport, please check the configuration.",
     );
   }
   console.log("clienttransport", transport);
@@ -46,7 +46,7 @@ export async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
   //@ts-ignore
   await client.connect(transport);
@@ -78,7 +78,7 @@ export async function createMcpServer(
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4)
+      JSON.stringify(tools, null, 4),
     );
     listOutputs.tools = tools;
 
@@ -95,7 +95,7 @@ export async function createMcpServer(
     const prompts = await client.listPrompts();
     console.log(
       `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4)
+      JSON.stringify(prompts, null, 4),
     );
     listOutputs.prompts = prompts;
     capabilities.prompts = {
@@ -111,7 +111,7 @@ export async function createMcpServer(
     const Resources = await client.listResources();
     console.log(
       `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4)
+      JSON.stringify(Resources, null, 4),
     );
     listOutputs.resources = Resources;
     capabilities.resources = {
@@ -129,7 +129,7 @@ export async function createMcpServer(
     const ResourcesTemplates = await client.listResourceTemplates();
     console.log(
       `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
+      JSON.stringify(ResourcesTemplates, null, 4),
     );
     listOutputs.resourceTemplates = ResourcesTemplates;
     capabilities.resources = {
@@ -157,7 +157,7 @@ export async function createMcpServer(
       capabilities: Object.assign(capabilities, {
         tools: { listChanged: true },
       }),
-    }
+    },
   );
 
   // 注册工具
@@ -178,14 +178,14 @@ export async function createMcpServer(
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            ? //@ts-ignore
-              JSONSchemaToZod.convert(tool.outputSchema).shape
+            //@ts-ignore
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -201,16 +201,16 @@ export async function createMcpServer(
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -231,11 +231,11 @@ export async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -250,11 +250,11 @@ export async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           return result;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -263,10 +263,10 @@ export async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resources;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -275,10 +275,10 @@ export async function createMcpServer(
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resourceTemplates;
-        }
+        },
       );
     }
   } catch (error) {
@@ -290,7 +290,7 @@ export async function createMcpServer(
     server.server.setRequestHandler(SetLevelRequestSchema, async (args) => {
       console.log(
         `[${serverName}] Setting logging level...`,
-        JSON.stringify(args.params, null, 4)
+        JSON.stringify(args.params, null, 4),
       );
 
       return await client.setLoggingLevel(args.params.level);
@@ -302,37 +302,27 @@ export async function createMcpServer(
     async (request, extra) => {
       console.log(
         `[${serverName}] Listing tools...`,
-        JSON.stringify(request.params, null, 4)
+        JSON.stringify(request.params, null, 4),
       );
       const tools = await client.listTools(request.params);
       return tools;
-    }
+    },
   );
   server.server.setRequestHandler(
     CallToolRequestSchema,
     async (request, extra) => {
       console.log(
         `[${serverName}] Calling tool...`,
-        JSON.stringify(request.params, null, 4)
+        JSON.stringify(request.params, null, 4),
       );
       const tools = await client.callTool(request.params);
       return tools;
-    }
+    },
   );
-  client.setNotificationHandler(
-    ToolListChangedNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Tool list changed...`,
-        JSON.stringify(notification, null, 4)
-      );
-      server.sendToolListChanged();
 
-      client.listTools().then((tools) => {
-        console.log("更新后的工具列表:", tools);
-      });
-    }
-  );
+  // 设置所有通知处理器
+  setupAllNotificationHandlers(client, server, serverName);
+
   client.onerror = (error) => {
     console.error(`[${serverName}] Error:`, error);
   };
@@ -344,7 +334,11 @@ export async function createMcpServer(
 
     const tryReconnect = async (): Promise<void> => {
       try {
-        console.log(`[${serverName}] Attempting to reconnect... (attempt ${retryCount + 1}/${maxRetries})`);
+        console.log(
+          `[${serverName}] Attempting to reconnect... (attempt ${
+            retryCount + 1
+          }/${maxRetries})`,
+        );
 
         // 清理旧的transport
         if (transport) {
@@ -357,7 +351,9 @@ export async function createMcpServer(
 
         transport = selectTransport(serverConfig);
         if (!transport) {
-          console.error(`[${serverName}] Failed to create transport, please check the configuration.`);
+          console.error(
+            `[${serverName}] Failed to create transport, please check the configuration.`,
+          );
           return;
         }
 
@@ -372,13 +368,18 @@ export async function createMcpServer(
         console.log(`[${serverName}] Reconnected successfully`);
       } catch (error) {
         retryCount++;
-        console.error(`[${serverName}] Reconnection attempt ${retryCount} failed:`, error);
+        console.error(
+          `[${serverName}] Reconnection attempt ${retryCount} failed:`,
+          error,
+        );
 
         if (retryCount < maxRetries) {
           console.log(`[${serverName}] Retrying in ${retryDelay}ms...`);
           setTimeout(tryReconnect, retryDelay * retryCount); // Exponential backoff
         } else {
-          console.error(`[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`);
+          console.error(
+            `[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`,
+          );
           // 可以在这里触发通知或标记服务器为不可用状态
         }
       }
