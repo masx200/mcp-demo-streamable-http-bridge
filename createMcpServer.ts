@@ -19,8 +19,8 @@ import { selectTransport } from "./selectTransport.js";
 // 创建MCP服务器实例
 export async function createMcpServer(
   serverName: string,
-  serverConfig: McpServerConfig
-): Promise<ServerInstance|null> {
+  serverConfig: McpServerConfig,
+): Promise<ServerInstance | null> {
   // 使用selectTransport函数选择合适的transport
   let transport = selectTransport(serverConfig);
   if (transport) {
@@ -32,7 +32,7 @@ export async function createMcpServer(
   }
   if (!transport) {
     throw new Error(
-      "Failed to create transport, please check the configuration."
+      "Failed to create transport, please check the configuration.",
     );
   }
   console.log("clienttransport", transport);
@@ -52,19 +52,19 @@ export async function createMcpServer(
         resources: {},
         prompts: {},
       },
-    }
+    },
   );
-client.onclose = () => {
-  console.log(`[${serverName}] Transport connection closed`); 
-}
-client.onerror = (error) => {
-  console.error(`[${serverName}] Transport connection error:`, error);
-}
+  client.onclose = () => {
+    console.log(`[${serverName}] Transport connection closed`);
+  };
+  client.onerror = (error) => {
+    console.error(`[${serverName}] Transport connection error:`, error);
+  };
   try {
     await client.connect(transport);
   } catch (error) {
     console.error(`[${serverName}] Error connecting to server:`, error);
-    return null
+    return null;
     // throw error;
   }
   //@ts-ignore
@@ -97,7 +97,7 @@ client.onerror = (error) => {
     const tools = await client.listTools();
     console.log(
       `[${serverName}] Registering tools:`,
-      JSON.stringify(tools, null, 4)
+      JSON.stringify(tools, null, 4),
     );
     listOutputs.tools = tools;
 
@@ -108,63 +108,68 @@ client.onerror = (error) => {
     console.error(`[${serverName}] Error listing tools:`, error);
     capabilities.tools = undefined;
   }
-
-  // 获取提示列表
-  try {
-    const prompts = await client.listPrompts();
-    console.log(
-      `[${serverName}] Registering prompts:`,
-      JSON.stringify(prompts, null, 4)
-    );
-    listOutputs.prompts = prompts;
-    capabilities.prompts = {
-      listChanged: true,
-    };
-  } catch (error) {
-    console.error(`[${serverName}] Error listing prompts:`, error);
-    capabilities.prompts = undefined;
-  }
-
-  // 获取资源列表
-  try {
-    const Resources = await client.listResources();
-    console.log(
-      `[${serverName}] Registering Resources:`,
-      JSON.stringify(Resources, null, 4)
-    );
-    listOutputs.resources = Resources;
-    capabilities.resources = {
-      listChanged: true,
-    };
-  } catch (error) {
-    console.error(`[${serverName}] Error listing Resources:`, error);
-    capabilities.resources = undefined;
-
-    if (listOutputs.resources || listOutputs.resourceTemplates) {
-      capabilities.resources = {};
+  if ((await getServerCapabilities(client))?.prompts) {
+    // 获取提示列表
+    try {
+      const prompts = await client.listPrompts();
+      console.log(
+        `[${serverName}] Registering prompts:`,
+        JSON.stringify(prompts, null, 4),
+      );
+      listOutputs.prompts = prompts;
+      capabilities.prompts = {
+        listChanged: true,
+      };
+    } catch (error) {
+      console.error(`[${serverName}] Error listing prompts:`, error);
+      capabilities.prompts = undefined;
     }
   }
-  try {
-    const ResourcesTemplates = await client.listResourceTemplates();
-    console.log(
-      `[${serverName}] Registering ResourcesTemplates:`,
-      JSON.stringify(ResourcesTemplates, null, 4)
-    );
-    listOutputs.resourceTemplates = ResourcesTemplates;
-    capabilities.resources = {
-      listChanged: true,
-    };
-  } catch (error: any) {
-    console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
 
-    if (
-      String(error).includes("McpError: MCP error -32001: Request timed out")
-    ) {
-      throw error;
+  if ((await getServerCapabilities(client))?.resources) {
+    // 获取资源列表
+    try {
+      const Resources = await client.listResources();
+      console.log(
+        `[${serverName}] Registering Resources:`,
+        JSON.stringify(Resources, null, 4),
+      );
+      listOutputs.resources = Resources;
+      capabilities.resources = {
+        listChanged: true,
+      };
+    } catch (error) {
+      console.error(`[${serverName}] Error listing Resources:`, error);
+      capabilities.resources = undefined;
+
+      if (listOutputs.resources || listOutputs.resourceTemplates) {
+        capabilities.resources = {};
+      }
     }
-    capabilities.resources = undefined;
-    if (listOutputs.resources || listOutputs.resourceTemplates) {
-      capabilities.resources = {};
+  }
+  if ((await getServerCapabilities(client))?.resources) {
+    try {
+      const ResourcesTemplates = await client.listResourceTemplates();
+      console.log(
+        `[${serverName}] Registering ResourcesTemplates:`,
+        JSON.stringify(ResourcesTemplates, null, 4),
+      );
+      listOutputs.resourceTemplates = ResourcesTemplates;
+      capabilities.resources = {
+        listChanged: true,
+      };
+    } catch (error: any) {
+      console.error(`[${serverName}] Error listing ResourcesTemplates:`, error);
+
+      if (
+        String(error).includes("McpError: MCP error -32001: Request timed out")
+      ) {
+        throw error;
+      }
+      capabilities.resources = undefined;
+      if (listOutputs.resources || listOutputs.resourceTemplates) {
+        capabilities.resources = {};
+      }
     }
   }
   const server = new McpServer(
@@ -176,7 +181,7 @@ client.onerror = (error) => {
       capabilities: Object.assign(capabilities, {
         tools: { listChanged: true },
       }),
-    }
+    },
   );
 
   // 注册工具
@@ -197,14 +202,14 @@ client.onerror = (error) => {
                 annotations: tool.annotations,
               },
               null,
-              4
-            )
+              4,
+            ),
           );
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            ? //@ts-ignore
-              JSONSchemaToZod.convert(tool.outputSchema).shape
+            //@ts-ignore
+            ? JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -220,16 +225,16 @@ client.onerror = (error) => {
             async (params: any) => {
               console.log(
                 `[${serverName}] Calling tool`,
-                JSON.stringify({ name: tool.name, params }, null, 4)
+                JSON.stringify({ name: tool.name, params }, null, 4),
               );
               const result = await client.callTool({
                 name: tool.name,
                 arguments: params,
               });
               return result;
-            }
+            },
           );
-        })
+        }),
       );
     }
   } catch (error) {
@@ -250,11 +255,11 @@ client.onerror = (error) => {
         async (request) => {
           console.log(
             `[${serverName}] Getting prompt...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.getPrompt(request.params);
           return result;
-        }
+        },
       );
     }
   } catch (error) {
@@ -269,11 +274,11 @@ client.onerror = (error) => {
         async (request) => {
           console.log(
             `[${serverName}] Reading resource...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           const result = await client.readResource(request.params);
           return result;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -282,10 +287,10 @@ client.onerror = (error) => {
         async (request) => {
           console.log(
             `[${serverName}] Listing resources...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resources;
-        }
+        },
       );
 
       server.server.setRequestHandler(
@@ -294,10 +299,10 @@ client.onerror = (error) => {
         async (request) => {
           console.log(
             `[${serverName}] Listing resourceTemplates...`,
-            JSON.stringify(request.params, null, 4)
+            JSON.stringify(request.params, null, 4),
           );
           return listOutputs.resourceTemplates;
-        }
+        },
       );
     }
   } catch (error) {
@@ -309,7 +314,7 @@ client.onerror = (error) => {
     server.server.setRequestHandler(SetLevelRequestSchema, async (args) => {
       console.log(
         `[${serverName}] Setting logging level...`,
-        JSON.stringify(args.params, null, 4)
+        JSON.stringify(args.params, null, 4),
       );
 
       return await client.setLoggingLevel(args.params.level);
@@ -321,22 +326,22 @@ client.onerror = (error) => {
     async (request, extra) => {
       console.log(
         `[${serverName}] Listing tools...`,
-        JSON.stringify(request.params, null, 4)
+        JSON.stringify(request.params, null, 4),
       );
       const tools = await client.listTools(request.params);
       return tools;
-    }
+    },
   );
   server.server.setRequestHandler(
     CallToolRequestSchema,
     async (request, extra) => {
       console.log(
         `[${serverName}] Calling tool...`,
-        JSON.stringify(request.params, null, 4)
+        JSON.stringify(request.params, null, 4),
       );
       const tools = await client.callTool(request.params);
       return tools;
-    }
+    },
   );
 
   // 设置所有通知处理器
@@ -356,7 +361,7 @@ client.onerror = (error) => {
         console.log(
           `[${serverName}] Attempting to reconnect... (attempt ${
             retryCount + 1
-          }/${maxRetries})`
+          }/${maxRetries})`,
         );
 
         // 清理旧的transport
@@ -379,7 +384,7 @@ client.onerror = (error) => {
         }
         if (!transport) {
           console.error(
-            `[${serverName}] Failed to create transport, please check the configuration.`
+            `[${serverName}] Failed to create transport, please check the configuration.`,
           );
           return;
         }
@@ -397,7 +402,7 @@ client.onerror = (error) => {
         retryCount++;
         console.error(
           `[${serverName}] Reconnection attempt ${retryCount} failed:`,
-          error
+          error,
         );
 
         if (retryCount < maxRetries) {
@@ -405,7 +410,7 @@ client.onerror = (error) => {
           setTimeout(tryReconnect, retryDelay * retryCount); // Exponential backoff
         } else {
           console.error(
-            `[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`
+            `[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`,
           );
           // 可以在这里触发通知或标记服务器为不可用状态
         }
