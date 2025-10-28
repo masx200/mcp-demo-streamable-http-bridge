@@ -1,3 +1,10 @@
+// process.on("uncaughtException", (error) => {
+//   console.error("Uncaught exception:", error);
+
+
+// throw error
+//   // process.exit(1);
+// })
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -70,10 +77,10 @@ export interface ServerInstance {
   server?: McpServer;
   client?: Client;
   transport?:
-    | StdioClientTransport
-    | SSEClientTransport
-    | StreamableHTTPClientTransport
-    | WebSocketClientTransport;
+  | StdioClientTransport
+  | SSEClientTransport
+  | StreamableHTTPClientTransport
+  | WebSocketClientTransport;
   httpTransports?: StreamableHTTPServerTransport[];
   sseTransports?: SSEServerTransport[];
 
@@ -699,10 +706,9 @@ async function main() {
     }
 
     console.log(
-      `📦 Configured MCP servers: ${
-        Object.keys(config.mcpServers || {}).join(
-          ", ",
-        )
+      `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
+        ", ",
+      )
       }`,
     );
 
@@ -710,9 +716,8 @@ async function main() {
     if (config.wsServer?.enabled) {
       console.log("🌐 Available MCP ws endpoints:");
       for (const [key] of servers) {
-        const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${
-          encodeURIComponent(key)
-        }`;
+        const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${encodeURIComponent(key)
+          }`;
         const encodedEndpoint = endpoint;
         console.log(key, `\n   http://${host}:${port}${encodedEndpoint}`);
       }
@@ -733,17 +738,15 @@ async function main() {
       for (const [key] of servers) {
         console.log(
           key,
-          `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
+          `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
+            key,
+          )
           }`,
           "\n",
           key,
-          `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${
-            encodeURIComponent(
-              key,
-            )
+          `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
+            key,
+          )
           }`,
         );
       }

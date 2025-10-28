@@ -61,11 +61,22 @@ export async function createMcpServer(
     console.error(`[${serverName}] Transport connection error:`, error);
   };
   try {
-    await client.connect(transport);
+    // 添加超时处理，防止连接挂起
+    const connectPromise = client.connect(transport);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Connection timeout')), 10000);
+    });
+
+    await Promise.race([connectPromise, timeoutPromise]);
   } catch (error) {
     console.error(`[${serverName}] Error connecting to server:`, error);
+    // 确保在连接失败时正确清理transport
+    try {
+      transport?.close?.();
+    } catch (cleanupError) {
+      console.warn(`[${serverName}] Error cleaning up transport:`, cleanupError);
+    }
     return null;
-    // throw error;
   }
   //@ts-ignore
 
@@ -348,8 +359,15 @@ export async function createMcpServer(
   setupAllNotificationHandlers(client, server, serverName);
 
   client.onerror = (error) => {
-    console.error(`[${serverName}] Error:`, error);
+    console.error(`[${serverName}] Client error:`, error);
+    // 防止错误导致程序崩溃
+    try {
+      // 可以在这里添加错误恢复逻辑
+    } catch (e) {
+      console.error(`[${serverName}] Error in error handler:`, e);
+    }
   };
+
   client.onclose = async () => {
     console.log(`[${serverName}] Connection closed`);
     let retryCount = 0;
@@ -396,7 +414,13 @@ export async function createMcpServer(
           console.error(`[${serverName}] Transport connection error:`, error);
         };
 
-        await client.connect(transport);
+        // 添加超时处理的连接
+        const connectPromise = client.connect(transport);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Reconnection timeout')), 5000);
+        });
+
+        await Promise.race([connectPromise, timeoutPromise]);
         console.log(`[${serverName}] Reconnected successfully`);
       } catch (error) {
         retryCount++;
@@ -404,6 +428,13 @@ export async function createMcpServer(
           `[${serverName}] Reconnection attempt ${retryCount} failed:`,
           error,
         );
+
+        // 确保在重连失败时正确清理transport
+        try {
+          transport?.close?.();
+        } catch (cleanupError) {
+          console.warn(`[${serverName}] Error cleaning up transport during reconnect:`, cleanupError);
+        }
 
         if (retryCount < maxRetries) {
           console.log(`[${serverName}] Retrying in ${retryDelay}ms...`);
@@ -417,7 +448,14 @@ export async function createMcpServer(
       }
     };
 
-    tryReconnect();
+    // 使用 setImmediate 避免在事件循环中抛出未捕获的异常
+    setImmediate(() => {
+      try {
+        tryReconnect();
+      } catch (error) {
+        console.error(`[${serverName}] Error during reconnection setup:`, error);
+      }
+    });
   };
   return {
     config: serverConfig,
