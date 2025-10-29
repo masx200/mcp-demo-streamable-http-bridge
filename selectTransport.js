@@ -3,16 +3,13 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { WebSocketClientTransport } from "./WebSocketClientTransport.js";
 import { WebSocket } from "ws";
-// 根据McpServerConfig选择合适的transport
 export function selectTransport(serverConfig) {
-    // 如果配置了command，使用stdio transport
     if (serverConfig.command ||
         serverConfig.type == "stdio" ||
         serverConfig.transport == "stdio") {
         if (!serverConfig.command) {
             throw new Error("command is required for stdio transport");
         }
-        // 验证command是否存在
         const command = serverConfig.command;
         const isWindows = process.platform === "win32";
         const commandExtension = isWindows ? ".exe" : "";
@@ -33,7 +30,6 @@ export function selectTransport(serverConfig) {
             requestInit: { headers: serverConfig.headers },
         });
     }
-    // 如果配置了sseUrl，使用SSE transport
     if (serverConfig.sseUrl ||
         serverConfig.type == "sse" ||
         serverConfig.transport == "sse") {
@@ -48,15 +44,12 @@ export function selectTransport(serverConfig) {
         (serverConfig.type == "ws" || serverConfig.transport == "ws")) {
         return createWebSocketClientTransport(serverConfig);
     }
-    // 如果配置了wsUrl，使用WebSocket transport
     if (serverConfig.wsUrl ||
         serverConfig.type == "ws" ||
         serverConfig.transport == "ws") {
         if (!serverConfig.wsUrl) {
             throw new Error("wsUrl is required for ws transport");
         }
-        // 注意：WebSocketClientTransport需要从websocket.ts导入
-        // 这里假设WebSocketClientTransport的构造函数接受URL和headers
         return createWebSocketClientTransport(serverConfig);
     }
     if (serverConfig.url &&
@@ -65,14 +58,12 @@ export function selectTransport(serverConfig) {
             requestInit: { headers: serverConfig.headers },
         });
     }
-    // 如果配置了httpUrl或url，使用StreamableHTTP transport
     const httpUrl = serverConfig.httpUrl || serverConfig.url;
     if (httpUrl) {
         return new StreamableHTTPClientTransport(new URL(httpUrl), {
             requestInit: { headers: serverConfig.headers },
         });
     }
-    // 如果明确指定了transport类型，根据类型选择
     if (serverConfig.transport) {
         switch (serverConfig.transport.toLowerCase()) {
             case "stdio":
@@ -107,7 +98,6 @@ export function selectTransport(serverConfig) {
                 break;
         }
     }
-    // 如果没有匹配的配置，返回null
     return null;
 }
 export function createWebSocketClientTransport(serverConfig) {

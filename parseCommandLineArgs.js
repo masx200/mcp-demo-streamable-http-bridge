@@ -1,6 +1,5 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-// 解析命令行参数
 export function parseCommandLineArgs() {
     const argv = yargs(hideBin(process.argv))
         .version(false)

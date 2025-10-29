@@ -1,12 +1,10 @@
 import express from "express";
 import {} from "./main.js";
-// 认证中间件
 export default function (config) {
     return function (req, res, next) {
         const authHeader = req.headers["authorization"];
-        const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+        const token = authHeader && authHeader.split(" ")[1];
         const expectedToken = config.apiKey;
-        // 如果配置了API密钥，则进行验证
         if (expectedToken) {
             if (!token || !authHeader?.startsWith("Bearer ")) {
                 return res.status(401).json({

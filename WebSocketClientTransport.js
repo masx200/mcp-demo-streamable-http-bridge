@@ -1,19 +1,14 @@
 import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
 const SUBPROTOCOL = "mcp";
-/**
- * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
- */
 export class WebSocketClientTransport {
     url;
     options;
     _socket;
     _url;
-    //这里不能先设定sessionId,否则会影响初始化
     sessionId;
     onclose;
     onerror;
-    //@ts-ignore
     onmessage;
     constructor(url, options) {
         this.url = url;
@@ -35,13 +30,11 @@ export class WebSocketClientTransport {
                 this.options?.onError?.(error);
             };
             this._socket.onopen = () => {
-                //@ts-ignore
                 this.options?.onOpen?.(this._socket);
                 resolve();
             };
             this._socket.onclose = () => {
                 this.onclose?.();
-                //@ts-ignore
                 this.options?.onClose?.(this._socket);
             };
             this._socket.onmessage = (event) => {
@@ -59,12 +52,6 @@ export class WebSocketClientTransport {
                 let message;
                 try {
                     message = Object.assign(JSONRPCMessageSchema.parse(JSON.parse(event.data)));
-                    // if (
-                    //   message?.sessionId !== undefined &&
-                    //   message?.sessionId !== this.sessionId
-                    // ) {
-                    //   this.sessionId = message.sessionId;
-                    // }
                 }
                 catch (error) {
                     console.error("WebSocketClientTransport message error", error);
@@ -73,13 +60,9 @@ export class WebSocketClientTransport {
                     return;
                 }
                 this.options?.onMessage?.(message, {
-                    // sessionId: message.sessionId,
-                    //@ts-ignore
                     requestInfo: { headers: this.options?.headers ?? {} },
                 });
                 this.onmessage?.(message, {
-                    // sessionId: message.sessionId,
-                    //@ts-ignore
                     requestInfo: { headers: this.options?.headers ?? {} },
                 });
             };
@@ -99,9 +82,7 @@ export class WebSocketClientTransport {
                 reject(new Error("WebSocket is not open"));
                 return;
             }
-            this._socket?.send(JSON.stringify(Object.assign(message, {
-            // sessionId: options?.relatedRequestId ?? this.sessionId,
-            })));
+            this._socket?.send(JSON.stringify(Object.assign(message, {})));
             console.log("send WebSocketClientTransport", JSON.stringify(message, null, 4));
             resolve();
         });

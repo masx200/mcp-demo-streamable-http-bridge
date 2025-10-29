@@ -6,9 +6,7 @@ import { getServerCapabilities } from "./getServerCapabilities.js";
 import {} from "./main.js";
 import { setupAllNotificationHandlers } from "./notificationHandlers.js";
 import { selectTransport } from "./selectTransport.js";
-// 创建MCP服务器实例
 export async function createMcpServer(serverName, serverConfig) {
-    // 使用selectTransport函数选择合适的transport
     let transport = selectTransport(serverConfig);
     if (transport) {
         console.log("transport", transport);
@@ -26,7 +24,6 @@ export async function createMcpServer(serverName, serverConfig) {
     transport.onerror = (error) => {
         console.error(`[${serverName}] Transport connection error:`, error);
     };
-    //  const client= new McpClient()
     const client = new Client({ name: `bridge-client-${serverName}`, version: "1.0.0" }, {
         capabilities: {
             tools: {},
@@ -41,7 +38,6 @@ export async function createMcpServer(serverName, serverConfig) {
         console.error(`[${serverName}] Transport connection error:`, error);
     };
     try {
-        // 添加超时处理，防止连接挂起
         const connectPromise = client.connect(transport);
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Connection timeout')), 10000);
@@ -50,7 +46,6 @@ export async function createMcpServer(serverName, serverConfig) {
     }
     catch (error) {
         console.error(`[${serverName}] Error connecting to server:`, error);
-        // 确保在连接失败时正确清理transport
         try {
             transport?.close?.();
         }
@@ -59,7 +54,6 @@ export async function createMcpServer(serverName, serverConfig) {
         }
         return null;
     }
-    //@ts-ignore
     console.log("client connected", transport);
     const capabilities = (await getServerCapabilities(client)) ?? {};
     console.log(`[${serverName}] capabilities:`, capabilities);
@@ -69,7 +63,6 @@ export async function createMcpServer(serverName, serverConfig) {
         resources: null,
         resourceTemplates: null,
     };
-    // 获取工具列表
     try {
         const tools = await client.listTools();
         console.log(`[${serverName}] Registering tools:`, JSON.stringify(tools, null, 4));
@@ -83,7 +76,6 @@ export async function createMcpServer(serverName, serverConfig) {
         capabilities.tools = undefined;
     }
     if ((await getServerCapabilities(client))?.prompts) {
-        // 获取提示列表
         try {
             const prompts = await client.listPrompts();
             console.log(`[${serverName}] Registering prompts:`, JSON.stringify(prompts, null, 4));
@@ -98,7 +90,6 @@ export async function createMcpServer(serverName, serverConfig) {
         }
     }
     if ((await getServerCapabilities(client))?.resources) {
-        // 获取资源列表
         try {
             const Resources = await client.listResources();
             console.log(`[${serverName}] Registering Resources:`, JSON.stringify(Resources, null, 4));
@@ -143,7 +134,6 @@ export async function createMcpServer(serverName, serverConfig) {
             tools: { listChanged: true },
         }),
     });
-    // 注册工具
     try {
         if (capabilities.tools && listOutputs.tools) {
             server.server.registerCapabilities({
@@ -156,10 +146,8 @@ export async function createMcpServer(serverName, serverConfig) {
                     description: tool.description,
                     annotations: tool.annotations,
                 }, null, 4));
-                //@ts-ignore
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    //@ts-ignore
                     ? JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
@@ -168,9 +156,7 @@ export async function createMcpServer(serverName, serverConfig) {
                     ...tool,
                     inputSchema: inputSchema,
                     outputSchema,
-                }, 
-                //@ts-ignore
-                async (params) => {
+                }, async (params) => {
                     console.log(`[${serverName}] Calling tool`, JSON.stringify({ name: tool.name, params }, null, 4));
                     const result = await client.callTool({
                         name: tool.name,
@@ -184,10 +170,8 @@ export async function createMcpServer(serverName, serverConfig) {
     catch (error) {
         console.error(`[${serverName}] Error Registering tools:`, error);
     }
-    // 注册提示
     try {
         if (capabilities.prompts && listOutputs.prompts) {
-            //@ts-ignore
             server.server.setRequestHandler(ListPromptsRequestSchema, async () => {
                 console.log(`[${serverName}] Listing prompts...`);
                 return listOutputs.prompts;
@@ -202,7 +186,6 @@ export async function createMcpServer(serverName, serverConfig) {
     catch (error) {
         console.error(`[${serverName}] Error Registering prompts:`, error);
     }
-    // 注册资源
     try {
         if (capabilities.resources && listOutputs.resources) {
             server.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
@@ -210,15 +193,11 @@ export async function createMcpServer(serverName, serverConfig) {
                 const result = await client.readResource(request.params);
                 return result;
             });
-            server.server.setRequestHandler(ListResourcesRequestSchema, 
-            //@ts-ignore
-            async (request) => {
+            server.server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
                 console.log(`[${serverName}] Listing resources...`, JSON.stringify(request.params, null, 4));
                 return listOutputs.resources;
             });
-            server.server.setRequestHandler(ListResourceTemplatesRequestSchema, 
-            //@ts-ignore
-            async (request) => {
+            server.server.setRequestHandler(ListResourceTemplatesRequestSchema, async (request) => {
                 console.log(`[${serverName}] Listing resourceTemplates...`, JSON.stringify(request.params, null, 4));
                 return listOutputs.resourceTemplates;
             });
@@ -244,13 +223,10 @@ export async function createMcpServer(serverName, serverConfig) {
         const tools = await client.callTool(request.params);
         return tools;
     });
-    // 设置所有通知处理器
     setupAllNotificationHandlers(client, server, serverName);
     client.onerror = (error) => {
         console.error(`[${serverName}] Client error:`, error);
-        // 防止错误导致程序崩溃
         try {
-            // 可以在这里添加错误恢复逻辑
         }
         catch (e) {
             console.error(`[${serverName}] Error in error handler:`, e);
@@ -260,11 +236,10 @@ export async function createMcpServer(serverName, serverConfig) {
         console.log(`[${serverName}] Connection closed`);
         let retryCount = 0;
         const maxRetries = 3;
-        const retryDelay = 1000; // 1 second
+        const retryDelay = 1000;
         const tryReconnect = async () => {
             try {
                 console.log(`[${serverName}] Attempting to reconnect... (attempt ${retryCount + 1}/${maxRetries})`);
-                // 清理旧的transport
                 if (transport) {
                     try {
                         transport.close?.();
@@ -290,7 +265,6 @@ export async function createMcpServer(serverName, serverConfig) {
                 transport.onerror = (error) => {
                     console.error(`[${serverName}] Transport connection error:`, error);
                 };
-                // 添加超时处理的连接
                 const connectPromise = client.connect(transport);
                 const timeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('Reconnection timeout')), 5000);
@@ -301,7 +275,6 @@ export async function createMcpServer(serverName, serverConfig) {
             catch (error) {
                 retryCount++;
                 console.error(`[${serverName}] Reconnection attempt ${retryCount} failed:`, error);
-                // 确保在重连失败时正确清理transport
                 try {
                     transport?.close?.();
                 }
@@ -310,15 +283,13 @@ export async function createMcpServer(serverName, serverConfig) {
                 }
                 if (retryCount < maxRetries) {
                     console.log(`[${serverName}] Retrying in ${retryDelay}ms...`);
-                    setTimeout(tryReconnect, retryDelay * retryCount); // Exponential backoff
+                    setTimeout(tryReconnect, retryDelay * retryCount);
                 }
                 else {
                     console.error(`[${serverName}] Maximum reconnection attempts (${maxRetries}) reached. Giving up.`);
-                    // 可以在这里触发通知或标记服务器为不可用状态
                 }
             }
         };
-        // 使用 setImmediate 避免在事件循环中抛出未捕获的异常
         setImmediate(() => {
             try {
                 tryReconnect();

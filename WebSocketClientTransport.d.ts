@@ -9,9 +9,6 @@ export type WebSocketClientOptions = (WebSocket.ClientOptions | ClientRequestArg
     onOpen?: (socket: WebSocket) => void;
     onMessage?: (message: JSONRPCMessage, extra?: MessageExtraInfo) => void;
 };
-/**
- * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
- */
 export declare class WebSocketClientTransport implements Transport {
     url: URL;
     options?: WebSocketClientOptions | undefined;

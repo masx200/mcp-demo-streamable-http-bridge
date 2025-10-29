@@ -1,34 +1,5 @@
 import { JSONRPCMessageSchema, } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocket } from "ws";
-/**
- * Server transport for WebSocket: this implements the MCP WebSocket transport specification.
- * It supports session management and follows the same patterns as StreamableHTTPServerTransport.
- *
- * Usage example:
- *
- * ```typescript
- * // Stateful mode - server sets the session ID
- * const statefulTransport = new WebSocketServerTransport({
- *   sessionIdGenerator: () => randomUUID(),
- *   port: 8080
- * });
- *
- * // Stateless mode - explicitly set session ID to undefined
- * const statelessTransport = new WebSocketServerTransport({
- *   sessionIdGenerator: undefined,
- *   port: 8080
- * });
- * ```
- *
- * In stateful mode:
- * - Session ID is generated and managed
- * - Session validation is performed
- * - State is maintained in-memory (connections, message history)
- *
- * In stateless mode:
- * - No session ID is generated
- * - No session validation is performed
- */
 export class WebSocketServerTransport {
     ws;
     request;
@@ -47,7 +18,6 @@ export class WebSocketServerTransport {
         }
         try {
             return new Promise((resolve, reject) => {
-                //@ts-ignore
                 this.options.onsessioninitialized(this.sessionId);
                 this.options.onOpen?.(this.ws);
                 this.options.onConnection?.(this.ws);
@@ -58,7 +28,6 @@ export class WebSocketServerTransport {
                 });
                 this.ws.on("close", () => {
                     this.onclose?.();
-                    //@ts-ignore
                     this.options.onsessionclosed(this.sessionId);
                     this.options.onClose?.(this.ws);
                 });
@@ -76,7 +45,6 @@ export class WebSocketServerTransport {
         finally {
             this.started = true;
         }
-        //@ts-ignore
     }
     async send(message, options) {
         console.log("WebSocketServerTransport send", JSON.stringify(message, null, 4));
@@ -94,7 +62,6 @@ export class WebSocketServerTransport {
     onclose;
     onerror;
     onmessage;
-    //这里不能先设定sessionId,否则会影响初始化
     sessionId;
     setProtocolVersion;
 }

@@ -1,10 +1,10 @@
-// process.on("uncaughtException", (error) => {
-//   console.error("Uncaught exception:", error);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception:", error);
 
 
 // throw error
 //   // process.exit(1);
-// })
+})
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
