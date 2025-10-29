@@ -64,7 +64,7 @@ export async function createMcpServer(
     // 添加超时处理，防止连接挂起
     const connectPromise = client.connect(transport);
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Connection timeout')), 10000);
+      setTimeout(() => reject(new Error("Connection timeout")), 10000);
     });
 
     await Promise.race([connectPromise, timeoutPromise]);
@@ -74,7 +74,10 @@ export async function createMcpServer(
     try {
       transport?.close?.();
     } catch (cleanupError) {
-      console.warn(`[${serverName}] Error cleaning up transport:`, cleanupError);
+      console.warn(
+        `[${serverName}] Error cleaning up transport:`,
+        cleanupError,
+      );
     }
     return null;
   }
@@ -219,8 +222,8 @@ export async function createMcpServer(
           //@ts-ignore
           const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
           const outputSchema = tool.outputSchema
-            //@ts-ignore
-            ? JSONSchemaToZod.convert(tool.outputSchema).shape
+            ? //@ts-ignore
+              JSONSchemaToZod.convert(tool.outputSchema).shape
             : tool.outputSchema;
 
           server.registerTool(
@@ -417,7 +420,7 @@ export async function createMcpServer(
         // 添加超时处理的连接
         const connectPromise = client.connect(transport);
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Reconnection timeout')), 5000);
+          setTimeout(() => reject(new Error("Reconnection timeout")), 5000);
         });
 
         await Promise.race([connectPromise, timeoutPromise]);
@@ -433,7 +436,10 @@ export async function createMcpServer(
         try {
           transport?.close?.();
         } catch (cleanupError) {
-          console.warn(`[${serverName}] Error cleaning up transport during reconnect:`, cleanupError);
+          console.warn(
+            `[${serverName}] Error cleaning up transport during reconnect:`,
+            cleanupError,
+          );
         }
 
         if (retryCount < maxRetries) {
@@ -453,7 +459,10 @@ export async function createMcpServer(
       try {
         tryReconnect();
       } catch (error) {
-        console.error(`[${serverName}] Error during reconnection setup:`, error);
+        console.error(
+          `[${serverName}] Error during reconnection setup:`,
+          error,
+        );
       }
     });
   };

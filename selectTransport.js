@@ -71,8 +71,7 @@ export function selectTransport(serverConfig) {
                     return new StdioClientTransport({
                         command: serverConfig.command,
                         args: serverConfig.args,
-                        cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD ||
-                            process.cwd(),
+                        cwd: serverConfig.cwd || process.env.BRIDGE_API_PWD || process.cwd(),
                         env: Object.assign({}, serverConfig.env, process.env),
                     });
                 }

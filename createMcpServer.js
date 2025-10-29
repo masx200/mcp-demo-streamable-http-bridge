@@ -40,7 +40,7 @@ export async function createMcpServer(serverName, serverConfig) {
     try {
         const connectPromise = client.connect(transport);
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Connection timeout')), 10000);
+            setTimeout(() => reject(new Error("Connection timeout")), 10000);
         });
         await Promise.race([connectPromise, timeoutPromise]);
     }
@@ -148,7 +148,8 @@ export async function createMcpServer(serverName, serverConfig) {
                 }, null, 4));
                 const inputSchema = JSONSchemaToZod.convert(tool.inputSchema).shape;
                 const outputSchema = tool.outputSchema
-                    ? JSONSchemaToZod.convert(tool.outputSchema).shape
+                    ?
+                        JSONSchemaToZod.convert(tool.outputSchema).shape
                     : tool.outputSchema;
                 server.registerTool(tool.name, {
                     description: tool.description,
@@ -267,7 +268,7 @@ export async function createMcpServer(serverName, serverConfig) {
                 };
                 const connectPromise = client.connect(transport);
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Reconnection timeout')), 5000);
+                    setTimeout(() => reject(new Error("Reconnection timeout")), 5000);
                 });
                 await Promise.race([connectPromise, timeoutPromise]);
                 console.log(`[${serverName}] Reconnected successfully`);

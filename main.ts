@@ -1,10 +1,9 @@
 process.on("uncaughtException", (error) => {
   console.error("Uncaught exception:", error);
 
-
-// throw error
-//   // process.exit(1);
-})
+  // throw error
+  //   // process.exit(1);
+});
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -77,10 +76,10 @@ export interface ServerInstance {
   server?: McpServer;
   client?: Client;
   transport?:
-  | StdioClientTransport
-  | SSEClientTransport
-  | StreamableHTTPClientTransport
-  | WebSocketClientTransport;
+    | StdioClientTransport
+    | SSEClientTransport
+    | StreamableHTTPClientTransport
+    | WebSocketClientTransport;
   httpTransports?: StreamableHTTPServerTransport[];
   sseTransports?: SSEServerTransport[];
 
@@ -342,8 +341,8 @@ async function main() {
               console.log(`Session closed: ${transport.sessionId}`);
               transports.delete(transport.sessionId);
               serverInstance.httpTransports ??= [];
-              serverInstance.httpTransports = serverInstance.httpTransports
-                .filter((t) => t !== transport);
+              serverInstance.httpTransports =
+                serverInstance.httpTransports.filter((t) => t !== transport);
             }
           };
 
@@ -462,8 +461,8 @@ async function main() {
           // 设置响应关闭时的清理逻辑
           res.on("close", () => {
             if (serverInstance.sseTransports?.includes(sseTransport)) {
-              serverInstance.sseTransports = serverInstance.sseTransports
-                .filter((t) => t !== sseTransport);
+              serverInstance.sseTransports =
+                serverInstance.sseTransports.filter((t) => t !== sseTransport);
             }
             sseTransports.delete(sseTransport.sessionId);
             console.log(`SSE session closed: ${sseTransport.sessionId}`);
@@ -561,8 +560,8 @@ async function main() {
       const mcpservername = request.url?.substring(
         (config.wsServer?.pathPrefix ?? "/ws").length + 1,
       );
-      const mcpserverconfig = config.mcpServers
-        ?.[decodeURIComponent(mcpservername)];
+      const mcpserverconfig =
+        config.mcpServers?.[decodeURIComponent(mcpservername)];
       if (!mcpserverconfig) {
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
         socket.destroy();
@@ -620,25 +619,26 @@ async function main() {
         onConnection: (socket) => {
           console.log("wsTransport connected", socket.url);
         },
-        path: (config.wsServer?.pathPrefix ?? "/ws") +
+        path:
+          (config.wsServer?.pathPrefix ?? "/ws") +
           "/" +
           encodeURIComponent(serverName),
         noServer: true,
         verifyClient: !(config.apiKey ?? process.env.HTTP_API_TOKEN)
           ? undefined
           : async function (info, callback) {
-            const request = info.req as IncomingMessage;
-            const authHeader = request.headers["authorization"];
-            if (!authHeader || !authHeader.startsWith("Bearer ")) {
-              console.log("no authHeader,verifyClient failed");
-              callback(false);
-              return;
-            }
-            const token = authHeader.slice("Bearer ".length);
-            const result = validateBearerToken(token);
-            console.log("verifyClient result", result);
-            callback(result);
-          },
+              const request = info.req as IncomingMessage;
+              const authHeader = request.headers["authorization"];
+              if (!authHeader || !authHeader.startsWith("Bearer ")) {
+                console.log("no authHeader,verifyClient failed");
+                callback(false);
+                return;
+              }
+              const token = authHeader.slice("Bearer ".length);
+              const result = validateBearerToken(token);
+              console.log("verifyClient result", result);
+              callback(result);
+            },
       };
       const wss = new WebSocketServer({ ...options });
 
@@ -708,16 +708,16 @@ async function main() {
     console.log(
       `📦 Configured MCP servers: ${Object.keys(config.mcpServers || {}).join(
         ", ",
-      )
-      }`,
+      )}`,
     );
 
     // 打印所有MCP HTTP端点
     if (config.wsServer?.enabled) {
       console.log("🌐 Available MCP ws endpoints:");
       for (const [key] of servers) {
-        const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${encodeURIComponent(key)
-          }`;
+        const endpoint = `${config.wsServer?.pathPrefix ?? "/ws"}/${encodeURIComponent(
+          key,
+        )}`;
         const encodedEndpoint = endpoint;
         console.log(key, `\n   http://${host}:${port}${encodedEndpoint}`);
       }
@@ -740,14 +740,12 @@ async function main() {
           key,
           `\nSSE Endpoint: \n http://${host}:${port}${sseEndpoint}/${encodeURIComponent(
             key,
-          )
-          }`,
+          )}`,
           "\n",
           key,
           `\nMessage Endpoint: \n http://${host}:${port}${messageEndpoint}/${encodeURIComponent(
             key,
-          )
-          }`,
+          )}`,
         );
       }
     }

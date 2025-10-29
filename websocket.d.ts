@@ -9,8 +9,8 @@ export declare class WebSocketClientTransport implements Transport {
   url: URL;
   options?:
     | ((WebSocket.ClientOptions | ClientRequestArgs) & {
-      protocols?: string | string[];
-    })
+        protocols?: string | string[];
+      })
     | undefined;
   private _socket?;
   private _url;
@@ -22,8 +22,8 @@ export declare class WebSocketClientTransport implements Transport {
     url: URL,
     options?:
       | ((WebSocket.ClientOptions | ClientRequestArgs) & {
-        protocols?: string | string[];
-      })
+          protocols?: string | string[];
+        })
       | undefined,
   );
   start(): Promise<void>;

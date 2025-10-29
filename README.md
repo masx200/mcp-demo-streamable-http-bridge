@@ -250,17 +250,14 @@ TypeScript 版本仍然支持原有的环境变量配置：
 
 - **BRIDGE_STREAMABLE_HTTP_PATH**: Streamable HTTP 的路径（stdio→Streamable HTTP
   模式，默认：/mcp)
-
   - Streamable HTTP 的路径（stdio→Streamable HTTP 模式，默认：/mcp)
   - 示例: `export BRIDGE_STREAMABLE_HTTP_PATH="/mcp"`
 
 - **BRIDGE_API_TOKEN**: HTTP API Token 认证密钥（可选）
-
   - 用于启用 HTTP API 的 Token 认证功能
   - 示例: `export BRIDGE_API_TOKEN="your-secret-token"`
 
 - **BRIDGE_API_PORT**: 服务器监听端口（可选）
-
   - 设置桥接服务器监听的 HTTP 端口
   - 默认值: `3000`
   - 示例: `export BRIDGE_API_PORT=8080`

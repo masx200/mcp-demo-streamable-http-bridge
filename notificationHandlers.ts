@@ -2,14 +2,14 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-  CancelledNotificationSchema,
-  InitializedNotificationSchema,
+  // CancelledNotificationSchema,
+  // InitializedNotificationSchema,
   LoggingMessageNotificationSchema,
-  ProgressNotificationSchema,
+  // ProgressNotificationSchema,
   PromptListChangedNotificationSchema,
   ResourceListChangedNotificationSchema,
-  ResourceUpdatedNotificationSchema,
-  RootsListChangedNotificationSchema,
+  // ResourceUpdatedNotificationSchema,
+  // RootsListChangedNotificationSchema,
   ToolListChangedNotificationSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
@@ -73,56 +73,56 @@ export function setupAllNotificationHandlers(
   );
 
   // 处理资源更新通知
-  client.setNotificationHandler(
-    ResourceUpdatedNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Resource updated...`,
-        JSON.stringify(notification, null, 4),
-      );
-      // 资源更新通知不需要对应的server发送方法
-      // 只是记录日志，客户端可以据此更新本地缓存
-    },
-  );
+  // client.setNotificationHandler(
+  //   ResourceUpdatedNotificationSchema,
+  //   (notification) => {
+  //     console.log(
+  //       `[${serverName}] Resource updated...`,
+  //       JSON.stringify(notification, null, 4),
+  //     );
+  //     // 资源更新通知不需要对应的server发送方法
+  //     // 只是记录日志，客户端可以据此更新本地缓存
+  //   },
+  // );
 
   // 处理进度通知
-  client.setNotificationHandler(
-    ProgressNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Progress update...`,
-        JSON.stringify(notification, null, 4),
-      );
-      // 进度通知用于长时间运行操作的进度更新
-      // 不需要对应的server发送方法
-    },
-  );
+  // client.setNotificationHandler(
+  //   ProgressNotificationSchema,
+  //   (notification) => {
+  //     console.log(
+  //       `[${serverName}] Progress update...`,
+  //       JSON.stringify(notification, null, 4),
+  //     );
+  //     // 进度通知用于长时间运行操作的进度更新
+  //     // 不需要对应的server发送方法
+  //   },
+  // );
 
   // 处理取消通知
-  client.setNotificationHandler(
-    CancelledNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Operation cancelled...`,
-        JSON.stringify(notification, null, 4),
-      );
-      // 取消通知表示某个操作被取消
-      // 不需要对应的server发送方法
-    },
-  );
+  // client.setNotificationHandler(
+  //   CancelledNotificationSchema,
+  //   (notification) => {
+  //     console.log(
+  //       `[${serverName}] Operation cancelled...`,
+  //       JSON.stringify(notification, null, 4),
+  //     );
+  //     // 取消通知表示某个操作被取消
+  //     // 不需要对应的server发送方法
+  //   },
+  // );
 
   // 处理初始化通知
-  client.setNotificationHandler(
-    InitializedNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Client initialized...`,
-        JSON.stringify(notification, null, 4),
-      );
-      // 初始化通知表示客户端已完成初始化
-      // 不需要对应的server发送方法
-    },
-  );
+  // client.setNotificationHandler(
+  //   InitializedNotificationSchema,
+  //   (notification) => {
+  //     console.log(
+  //       `[${serverName}] Client initialized...`,
+  //       JSON.stringify(notification, null, 4),
+  //     );
+  //     // 初始化通知表示客户端已完成初始化
+  //     // 不需要对应的server发送方法
+  //   },
+  // );
 
   // 处理日志消息通知
   client.setNotificationHandler(
@@ -138,15 +138,15 @@ export function setupAllNotificationHandlers(
   );
 
   // 处理根列表变更通知
-  client.setNotificationHandler(
-    RootsListChangedNotificationSchema,
-    (notification) => {
-      console.log(
-        `[${serverName}] Roots list changed...`,
-        JSON.stringify(notification, null, 4),
-      );
-      // 根列表变更通知表示文件系统根目录发生变化
-      // 不需要对应的server发送方法
-    },
-  );
+  // client.setNotificationHandler(
+  //   RootsListChangedNotificationSchema,
+  //   (notification) => {
+  //     console.log(
+  //       `[${serverName}] Roots list changed...`,
+  //       JSON.stringify(notification, null, 4),
+  //     );
+  //     // 根列表变更通知表示文件系统根目录发生变化
+  //     // 不需要对应的server发送方法
+  //   },
+  // );
 }

@@ -204,8 +204,8 @@ async function main() {
                             console.log(`Session closed: ${transport.sessionId}`);
                             transports.delete(transport.sessionId);
                             serverInstance.httpTransports ??= [];
-                            serverInstance.httpTransports = serverInstance.httpTransports
-                                .filter((t) => t !== transport);
+                            serverInstance.httpTransports =
+                                serverInstance.httpTransports.filter((t) => t !== transport);
                         }
                     };
                     transport.onerror = (error) => {
@@ -295,8 +295,8 @@ async function main() {
                     console.log(`New SSE session initialized: ${sseTransport.sessionId}`);
                     res.on("close", () => {
                         if (serverInstance.sseTransports?.includes(sseTransport)) {
-                            serverInstance.sseTransports = serverInstance.sseTransports
-                                .filter((t) => t !== sseTransport);
+                            serverInstance.sseTransports =
+                                serverInstance.sseTransports.filter((t) => t !== sseTransport);
                         }
                         sseTransports.delete(sseTransport.sessionId);
                         console.log(`SSE session closed: ${sseTransport.sessionId}`);

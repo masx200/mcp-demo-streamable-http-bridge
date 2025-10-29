@@ -10,22 +10,20 @@ import {
 import { WebSocket } from "ws";
 import type { ClientRequestArgs } from "http";
 const SUBPROTOCOL = "mcp";
-export type WebSocketClientOptions =
-  & (
-    | WebSocket.ClientOptions
-    | ClientRequestArgs
-  )
-  & {
-    protocols?: string | string[];
-    onError?: (error: Error) => void;
-    onClose?: (socket: WebSocket) => void;
-    onOpen?: (socket: WebSocket) => void;
-    onMessage?: (
-      message: JSONRPCMessage,
-      //@ts-ignore
-      extra?: MessageExtraInfo,
-    ) => void;
-  };
+export type WebSocketClientOptions = (
+  | WebSocket.ClientOptions
+  | ClientRequestArgs
+) & {
+  protocols?: string | string[];
+  onError?: (error: Error) => void;
+  onClose?: (socket: WebSocket) => void;
+  onOpen?: (socket: WebSocket) => void;
+  onMessage?: (
+    message: JSONRPCMessage,
+    //@ts-ignore
+    extra?: MessageExtraInfo,
+  ) => void;
+};
 
 /**
  * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
@@ -44,7 +42,10 @@ export class WebSocketClientTransport implements Transport {
     extra?: MessageExtraInfo,
   ) => void;
 
-  constructor(public url: URL, public options?: WebSocketClientOptions) {
+  constructor(
+    public url: URL,
+    public options?: WebSocketClientOptions,
+  ) {
     this._url = url;
   }
 
@@ -63,9 +64,10 @@ export class WebSocketClientTransport implements Transport {
       );
 
       this._socket.onerror = (event: WebSocket.ErrorEvent) => {
-        const error = "error" in event
-          ? (event.error as Error)
-          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error =
+          "error" in event
+            ? (event.error as Error)
+            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
         this.options?.onError?.(error);

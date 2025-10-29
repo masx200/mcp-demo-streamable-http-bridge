@@ -15,39 +15,48 @@ export function mergeConfigs(
   const cliSseConfig = cliConfig?.sseServer;
   const cliWsConfig = cliConfig?.wsServer;
   return Object.assign(DEFAULT_CONFIG, fileConfig, cliConfig, envConfig, {
-    port: envConfig.port ||
+    port:
+      envConfig.port ||
       cliConfig.port ||
       fileConfig.port ||
       DEFAULT_CONFIG.port,
-    host: envConfig.host ||
+    host:
+      envConfig.host ||
       cliConfig.host ||
       fileConfig.host ||
       DEFAULT_CONFIG.host,
-    hotReload: envConfig.hotReload ||
+    hotReload:
+      envConfig.hotReload ||
       cliConfig.hotReload ||
       fileConfig.hotReload ||
       DEFAULT_CONFIG.hotReload,
-    pathPrefix: envConfig.pathPrefix ||
+    pathPrefix:
+      envConfig.pathPrefix ||
       cliConfig.pathPrefix ||
       fileConfig.pathPrefix ||
       DEFAULT_CONFIG.pathPrefix,
-    corsAllowOrigins: envConfig.corsAllowOrigins ||
+    corsAllowOrigins:
+      envConfig.corsAllowOrigins ||
       cliConfig.corsAllowOrigins ||
       fileConfig.corsAllowOrigins ||
       DEFAULT_CONFIG.corsAllowOrigins,
-    config: envConfig.config ||
+    config:
+      envConfig.config ||
       cliConfig.config ||
       fileConfig.config ||
       DEFAULT_CONFIG.config,
-    version: envConfig.version ||
+    version:
+      envConfig.version ||
       cliConfig.version ||
       fileConfig.version ||
       DEFAULT_CONFIG.version,
-    enableHttpServer: envConfig.enableHttpServer ||
+    enableHttpServer:
+      envConfig.enableHttpServer ||
       cliConfig.enableHttpServer ||
       fileConfig.enableHttpServer ||
       DEFAULT_CONFIG.enableHttpServer,
-    apiKey: envConfig.apiKey ||
+    apiKey:
+      envConfig.apiKey ||
       cliConfig.apiKey ||
       fileConfig.apiKey ||
       DEFAULT_CONFIG.apiKey,
