@@ -88,7 +88,7 @@ __metadata:
     "@types/cors": ^2.8.19
     "@types/express": ^5.0.3
     "@types/morgan": ^1
-    "@types/node": ^24.9.1
+    "@types/node": ^25.0.6
     "@types/uuid": ^10.0.0
     "@types/ws": ^8.18.1
     "@types/yargs": ^17.0.33
@@ -280,12 +280,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^24.9.1":
-  version: 24.9.1
-  resolution: "@types/node@npm:24.9.1"
+"@types/node@npm:^25.0.6":
+  version: 25.0.6
+  resolution: "@types/node@npm:25.0.6"
   dependencies:
-    undici-types: "npm:~7.16.0"
-  checksum: f32abf3f89f51587238997787242873df6be5081afbd0f4f33354913c939262aa979a7c7693a4ad676843cdb65c03c71565e5aade08a7a699eb001bda98abe1e
+    undici-types: ~7.16.0
+  checksum: 21a75e51758e23183c43ad3542681abd35d7ae09dc84e5a3b0a2bcfb5778681ad155023dc86fe8095c692d2823af90ed18d3af0c39d991ef2f246585bff27962
   languageName: node
   linkType: hard
 
