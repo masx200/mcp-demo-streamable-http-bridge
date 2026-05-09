@@ -51,5 +51,13 @@
     "type": "git",
     "url": "https://gitee.com/masx200/mcp-demo-streamable-http-bridge"
   },
-  "types": "./main.ts"
+  "types": "./main.ts",
+  "pnpm": {
+    "overrides": {
+      "fast-uri": ">=3.1.2"
+    }
+  },
+  "resolutions": {
+    "fast-uri": ">=3.1.2"
+  }
 }
